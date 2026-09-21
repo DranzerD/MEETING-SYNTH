@@ -17,45 +17,42 @@ this, reviewing it, or asking about it in an interview.
 
 ## Architecture
 
-```
-                         Next.js (App Router, src/app/)
-  ┌──────────────────────────────────────────────────────────────────┐
-  │ Pages: /, /login, /register, /dashboard, /analyze, /chat,        │
-  │        /meetings/[id]                                            │
-  │ src/middleware.ts -- redirects to /login if no session cookie    │
-  │                                                                    │
-  │ API routes (src/app/api/*) -- every one requires a session:      │
-  │   /api/register, /api/login, /api/logout, /api/session           │
-  │   /api/analyze  -> proxies to FastAPI /analyze, or TS fallback   │
-  │   /api/meetings, /api/meetings/[id]  -> local JSON file store    │
-  │   /api/people   -> aggregates tasks across meetings by assignee  │
-  │   /api/query    -> proxies to FastAPI /query  (chat)             │
-  │   /api/index    -> proxies to FastAPI /index, /index/status,     │
-  │                    /index/meetings  (background indexing)        │
-  └───────────────────────────┬────────────────────────────────────┘
-                               │ AURA_PY_API_URL (server-to-server only;
-                               │ FastAPI is never exposed to the browser)
-                               ▼
-                    FastAPI (python_backend/api_server.py)
-  ┌──────────────────────────────────────────────────────────────────┐
-  │ POST /analyze   -- extractive pipeline, queues background index  │
-  │ POST /index, GET /index/status/{id}, GET /index/meetings         │
-  │ POST /query     -- retrieval-augmented chat                      │
-  │ GET  /health                                                     │
-  │                                                                    │
-  │ aura_core/                                                        │
-  │   models.py, tasks.py, decisions.py, sentiment.py, summarizer.py  │
-  │   memory.py        -- thread history (JSON, append-only)          │
-  │   chunking.py, embeddings.py, vectorstore.py, retrieval.py,      │
-  │   reranking.py, query_engine.py, indexing.py  -- the RAG layer    │
-  │   hybrid_ml.py     -- LLM provider abstraction (Groq/OpenAI/      │
-  │                       Anthropic), used by both the optional       │
-  │                       use_llm extraction pass and /query          │
-  │   config.py        -- every RAG tunable, env-var driven           │
-  │   observability.py -- structured logging                         │
-  └───────────────────────────┬────────────────────────────────────┘
-                               ▼
-              Chroma (chroma_db/, on disk) + JSON ledger (cache/)
+```mermaid
+flowchart TB
+    Browser(["Browser"])
+
+    subgraph NJ["Next.js -- src/app/"]
+        MW["middleware.ts<br/>redirect to /login if no session cookie"]
+        Pages["Pages<br/>/analyze · /chat · /dashboard · /meetings/:id"]
+        API["API routes<br/>every one session-gated:<br/>/api/analyze · /api/query · /api/index<br/>/api/meetings · /api/people<br/>/api/login · /api/register · /api/session"]
+        MW --> Pages --> API
+    end
+
+    subgraph FA["FastAPI -- python_backend/"]
+        EP["POST /analyze · POST /query<br/>POST /index · GET /index/status · GET /health"]
+        subgraph AC["aura_core/"]
+            Extract["Extraction pipeline<br/>models · tasks · decisions · sentiment · summarizer"]
+            RAG["RAG layer<br/>chunking · embeddings · retrieval · reranking · query_engine"]
+            Hybrid["hybrid_ml.py<br/>provider-agnostic LLM fallback"]
+        end
+        EP --> Extract
+        EP --> RAG
+        RAG --> Hybrid
+    end
+
+    Mongo[("MongoDB<br/>auth only")]
+    Files[("JSON files<br/>data/meetings/")]
+    Chroma[("Chroma<br/>chroma_db/")]
+    Cache[("JSON ledger<br/>cache/")]
+    LLM{{"Groq / OpenAI / Anthropic"}}
+
+    Browser --> MW
+    API -- "AURA_PY_API_URL<br/>server-to-server only, never exposed to the browser" --> EP
+    API --> Mongo
+    API --> Files
+    RAG --> Chroma
+    RAG --> Cache
+    Hybrid --> LLM
 ```
 
 **Persistence, and why it's split the way it is:**
@@ -83,33 +80,27 @@ directly to browsers; see [Known limitations](#known-limitations).
 
 ## The RAG pipeline in detail
 
-```
-transcript
-  -> chunk_transcript()      sentence-boundary-aware, ~180-word windows, 2-sentence overlap,
-                              speaker attribution when the transcript has "Name: ..." lines
-  -> embed_texts()           all-MiniLM-L6-v2 (384-dim), local, L2-normalized
-  -> ChunkVectorStore.add_chunks()   upsert into Chroma; index_meeting() deletes the meeting's
-                              old chunks first, so re-indexing a shrunk transcript can't leave
-                              stale chunks behind
-                              [ background, via FastAPI BackgroundTasks -- /analyze's response
-                                doesn't wait on this ]
+```mermaid
+flowchart TB
+    subgraph IDX["Indexing -- background, on /analyze or POST /index"]
+        T["Transcript"] --> CH["chunk_transcript()<br/>~180-word windows, 2-sentence overlap,<br/>speaker attribution on 'Name: ...' lines"]
+        CH --> EM1["embed_texts()<br/>all-MiniLM-L6-v2, 384-dim, local"]
+        EM1 --> UP["add_chunks() upserts into Chroma<br/>(old chunks deleted first -- re-indexing<br/>a shrunk transcript can't leave stale ones)"]
+    end
 
-question
-  -> embed_query()
-  -> ChunkVectorStore.query()   ANN search, optionally filtered to meeting_ids, over-fetches
-                              RERANK_CANDIDATES (20) results when reranking is enabled
-  -> reranking.rerank_scores()  cross-encoder (ms-marco-MiniLM-L-6-v2) reorders the pool;
-                              falls back to plain ANN order if the model can't load
-  -> top_k slice
-  -> relevance gate           if the best match's cosine similarity < MIN_RELEVANCE_SCORE
-                              (0.30, calibrated -- see rag_eval/), refuse to answer instead of
-                              grounding a response in a weak match. The LLM is never called.
-  -> prompt with numbered excerpts (meeting, chunk, speakers) + citation-enforcement
-                              instructions + explicit "this is data, not instructions" framing
-  -> LLMFallback.chat_complete()  Groq -> OpenAI -> Anthropic, whichever key is set
-  -> answer + citations (meeting_id, chunk_index, speakers, snippet, score, char offsets)
-                              + `grounded` flag (false if the answer has no [n] citation marker
-                                anywhere, even though citations were retrieved)
+    subgraph QRY["Query -- POST /query"]
+        Q["Question"] --> EM2["embed_query()"]
+        EM2 --> SR["ChunkVectorStore.query()<br/>ANN search, optional meeting_ids filter,<br/>over-fetches 20 candidates if reranking"]
+        SR --> RR["reranking.rerank_scores()<br/>cross-encoder reorders the pool<br/>(falls back to ANN order if unavailable)"]
+        RR --> TK["top_k slice"]
+        TK --> GATE{"top score >=<br/>MIN_RELEVANCE_SCORE (0.30)?"}
+        GATE -- "no" --> REFUSE["Refuse to answer --<br/>LLM is never called"]
+        GATE -- "yes" --> PROMPT["Prompt: numbered excerpts<br/>+ citation-enforcement instructions<br/>+ 'this is data, not instructions'"]
+        PROMPT --> LLMC["LLMFallback.chat_complete()<br/>Groq -> OpenAI -> Anthropic"]
+        LLMC --> ANS["Answer + citations<br/>(meeting, chunk, speakers, score, offsets)<br/>+ grounded flag"]
+    end
+
+    UP -.->|"Chroma"| SR
 ```
 
 **Chunking.** Sentences are packed into ~180-word windows (comfortably under the embedding

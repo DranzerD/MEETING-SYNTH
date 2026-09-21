@@ -4,12 +4,20 @@ Paste a meeting transcript, get structured tasks/decisions/sentiment from a loca
 then ask grounded questions across every meeting you've analyzed via a retrieval-augmented chat
 layer with citations back to the source transcript.
 
-```
-Transcript -> extraction (TF-IDF classifiers, VADER, TextRank) -> tasks/decisions/sentiment
-           -> chunk -> embed -> Chroma                          -> background index
+```mermaid
+flowchart LR
+    T[Transcript] --> E["Extraction<br/>TF-IDF · VADER · TextRank"]
+    T --> C["Chunk + Embed"] --> V[(Chroma)]
+    E --> R1["Tasks · Decisions<br/>Sentiment · Summary"]
 
-Question -> embed -> ANN search -> rerank -> relevance gate -> LLM -> cited answer
+    Q[Question] --> S["Search + Rerank"]
+    V -.-> S
+    S --> G{"Enough<br/>evidence?"}
+    G -- no --> N["'I don't know'<br/>(no LLM call)"]
+    G -- yes --> L["LLM"] --> A["Cited answer"]
 ```
+
+Full system diagram (Next.js, FastAPI, storage) in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#architecture).
 
 ## Features
 
