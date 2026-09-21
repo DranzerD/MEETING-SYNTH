@@ -1,42 +1,44 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import type { Meeting, IndexStatus } from "@/app/lib/types";
 
-type Task = {
-  id: string;
-  task: string;
-  assignee: string;
-  priority: string;
-  deadline?: string;
-  completed: boolean;
-};
-
-type Meeting = {
-  meeting_id: string;
-  title: string;
-  timestamp: string;
-  transcript: string;
-  summary: any;
-  tasks: Task[];
-  decisions: any[];
-  sentiment: any;
-  stats: any;
-};
-
-export default function MeetingDetailPage() {
+function MeetingDetailInner() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const highlightSnippet = searchParams.get("snippet");
+  const highlightRef = useRef<HTMLElement | null>(null);
+
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "open" | "completed">("all");
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null);
+  const [indexing, setIndexing] = useState(false);
 
   useEffect(() => {
     fetchMeeting();
   }, [params.id]);
+
+  useEffect(() => {
+    if (highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [meeting, highlightSnippet]);
+
+  const fetchIndexStatus = async (meetingId: string) => {
+    try {
+      const response = await fetch(`/api/index?meetingId=${encodeURIComponent(meetingId)}`);
+      const data = await response.json();
+      if (data.success) setIndexStatus(data as IndexStatus);
+    } catch {
+      // Non-fatal: the badge just stays hidden if the Python service is down.
+    }
+  };
 
   const fetchMeeting = async () => {
     try {
@@ -44,11 +46,34 @@ export default function MeetingDetailPage() {
       const data = await response.json();
       if (data.success) {
         setMeeting(data.meeting);
+        fetchIndexStatus(data.meeting.meeting_id);
       }
     } catch (error) {
       console.error("Error fetching meeting:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const makeSearchable = async () => {
+    if (!meeting) return;
+    setIndexing(true);
+    try {
+      const response = await fetch("/api/index", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ meetingId: meeting.meeting_id, transcript: meeting.transcript }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Indexing runs in the background; poll once after a beat rather
+        // than assuming it's instant.
+        setTimeout(() => fetchIndexStatus(meeting.meeting_id), 1500);
+      }
+    } catch (error) {
+      console.error("Error indexing meeting:", error);
+    } finally {
+      setIndexing(false);
     }
   };
 
@@ -188,10 +213,39 @@ export default function MeetingDetailPage() {
         </div>
 
         <div className="bg-white/5 rounded-2xl p-8 border border-white/10 mb-6">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between mb-4 gap-4">
             <div className="flex-1">
               <h1 className="text-4xl font-bold mb-2">{meeting.title}</h1>
               <p className="text-slate-400">{formatDate(meeting.timestamp)}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {indexStatus?.status === "completed" && (
+                  <Link
+                    href={`/chat?meeting=${encodeURIComponent(meeting.meeting_id)}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+                  >
+                    💬 Searchable in chat -- ask about this meeting →
+                  </Link>
+                )}
+                {indexStatus?.status === "failed" && (
+                  <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
+                    ⚠ Indexing failed
+                  </span>
+                )}
+                {(indexStatus?.status === "queued" || indexStatus?.status === "indexing") && (
+                  <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
+                    ⏳ Indexing for chat…
+                  </span>
+                )}
+                {(!indexStatus || indexStatus.status === "failed") && (
+                  <button
+                    onClick={makeSearchable}
+                    disabled={indexing}
+                    className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-slate-300 hover:bg-white/5 transition disabled:opacity-50"
+                  >
+                    {indexing ? "Requesting…" : "Make searchable in chat"}
+                  </button>
+                )}
+              </div>
             </div>
             {sentiment && (
               <div
@@ -406,10 +460,21 @@ export default function MeetingDetailPage() {
 
             {meeting.transcript && (
               <div className="mt-8">
-                <h2 className="text-2xl font-bold mb-4">Transcript</h2>
+                <h2 className="text-2xl font-bold mb-4">
+                  Transcript
+                  {highlightSnippet && (
+                    <span className="ml-2 text-xs font-normal text-indigo-300">
+                      (jumped here from a chat citation)
+                    </span>
+                  )}
+                </h2>
                 <div className="bg-white/5 rounded-xl p-6 max-h-96 overflow-y-auto">
                   <pre className="text-sm text-slate-300 whitespace-pre-wrap font-sans">
-                    {meeting.transcript}
+                    <TranscriptWithHighlight
+                      transcript={meeting.transcript}
+                      snippet={highlightSnippet}
+                      highlightRef={highlightRef}
+                    />
                   </pre>
                 </div>
               </div>
@@ -418,5 +483,51 @@ export default function MeetingDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Splits the transcript around `snippet` (as returned in a chat
+ * citation) and wraps the match in a highlighted <mark>, so a citation
+ * link can jump straight to the evidence instead of leaving the reader to
+ * scan the whole transcript. Falls back to trying just the first ~60
+ * characters of the snippet, since a citation snippet is chunk text
+ * that's been through Python-side whitespace normalization and may not
+ * match the raw transcript byte-for-byte; if neither matches, the
+ * transcript still renders, just without a highlight. */
+function TranscriptWithHighlight({
+  transcript,
+  snippet,
+  highlightRef,
+}: {
+  transcript: string;
+  snippet: string | null;
+  highlightRef: React.MutableRefObject<HTMLElement | null>;
+}) {
+  if (!snippet) return <>{transcript}</>;
+
+  let index = transcript.indexOf(snippet);
+  let matched = snippet;
+  if (index === -1 && snippet.length > 60) {
+    matched = snippet.slice(0, 60);
+    index = transcript.indexOf(matched);
+  }
+  if (index === -1) return <>{transcript}</>;
+
+  return (
+    <>
+      {transcript.slice(0, index)}
+      <mark ref={highlightRef as React.RefObject<HTMLElement>} className="rounded bg-indigo-500/40 px-0.5 text-white">
+        {transcript.slice(index, index + matched.length)}
+      </mark>
+      {transcript.slice(index + matched.length)}
+    </>
+  );
+}
+
+export default function MeetingDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <MeetingDetailInner />
+    </Suspense>
   );
 }

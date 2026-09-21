@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type Meeting = {
   meeting_id: string;
@@ -14,6 +15,7 @@ type Citation = {
   chunk_id: string;
   meeting_id: string;
   chunk_index: number;
+  speakers: string[];
   snippet: string;
   score: number;
 };
@@ -23,12 +25,14 @@ type ChatMessage = {
   content: string;
   citations?: Citation[];
   model?: string | null;
+  grounded?: boolean;
   retrievalLatencyMs?: number;
   generationLatencyMs?: number;
   isError?: boolean;
 };
 
-export default function ChatPage() {
+function ChatPageInner() {
+  const searchParams = useSearchParams();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [meetingsLoading, setMeetingsLoading] = useState(true);
   const [selectedMeetingIds, setSelectedMeetingIds] = useState<string[]>([]);
@@ -49,6 +53,13 @@ export default function ChatPage() {
       })
       .finally(() => setMeetingsLoading(false));
   }, []);
+
+  // /chat?meeting=<id> pre-scopes the picker, so "Ask about this meeting"
+  // links from the dashboard/meeting-detail pages land ready to query.
+  useEffect(() => {
+    const preselect = searchParams.get("meeting");
+    if (preselect) setSelectedMeetingIds([preselect]);
+  }, [searchParams]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -97,6 +108,7 @@ export default function ChatPage() {
           content: data.answer,
           citations: data.citations || [],
           model: data.model,
+          grounded: data.grounded,
           retrievalLatencyMs: data.retrieval_latency_ms,
           generationLatencyMs: data.generation_latency_ms,
         },
@@ -264,6 +276,14 @@ export default function ChatPage() {
   );
 }
 
+export default function ChatPage() {
+  return (
+    <Suspense fallback={null}>
+      <ChatPageInner />
+    </Suspense>
+  );
+}
+
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
   return (
@@ -283,16 +303,24 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       {!isUser && !message.isError && (message.citations?.length ?? 0) > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {message.citations!.map((citation) => (
-            <div
+            <Link
               key={citation.chunk_id}
+              href={`/meetings/${encodeURIComponent(citation.meeting_id)}?snippet=${encodeURIComponent(citation.snippet.replace(/…$/, ""))}`}
               title={citation.snippet}
-              className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[11px] text-indigo-200"
+              className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[11px] text-indigo-200 transition hover:border-indigo-400 hover:bg-indigo-500/20"
             >
-              [{citation.index}] {citation.meeting_id} · chunk {citation.chunk_index} ·{" "}
-              {Math.round(citation.score * 100)}% match
-            </div>
+              [{citation.index}] {citation.meeting_id} · chunk {citation.chunk_index}
+              {citation.speakers.length > 0 ? ` · ${citation.speakers.join(", ")}` : ""} ·{" "}
+              {Math.round(citation.score * 100)}% match ↗
+            </Link>
           ))}
         </div>
+      )}
+
+      {!isUser && !message.isError && (message.citations?.length ?? 0) > 0 && message.grounded === false && (
+        <p className="mt-1 text-[11px] text-amber-400">
+          ⚠ This answer didn&apos;t cite its sources inline -- verify it against the excerpts above.
+        </p>
       )}
 
       {!isUser && !message.isError && message.retrievalLatencyMs !== undefined && (

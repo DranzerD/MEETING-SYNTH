@@ -2,24 +2,19 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-
-type Meeting = {
-  meeting_id: string;
-  title: string;
-  timestamp: string;
-  tasks: any[];
-  decisions: any[];
-  sentiment: any;
-};
+import type { Meeting, IndexStatusValue } from "@/app/lib/types";
 
 export default function DashboardPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [view, setView] = useState<"meetings" | "people">("meetings");
   const [searchQuery, setSearchQuery] = useState("");
+  const [indexStatuses, setIndexStatuses] = useState<Record<string, IndexStatusValue>>({});
 
   useEffect(() => {
     fetchMeetings();
+    fetchIndexStatuses();
   }, []);
 
   const fetchMeetings = async () => {
@@ -28,11 +23,30 @@ export default function DashboardPage() {
       const data = await response.json();
       if (data.success) {
         setMeetings(data.meetings);
+      } else {
+        setFetchError(true);
       }
     } catch (error) {
       console.error("Error fetching meetings:", error);
+      setFetchError(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchIndexStatuses = async () => {
+    try {
+      const response = await fetch("/api/index");
+      const data = await response.json();
+      if (data.success && data.statuses) {
+        const map: Record<string, IndexStatusValue> = {};
+        for (const [id, status] of Object.entries(data.statuses)) {
+          map[id] = (status as { status: IndexStatusValue }).status;
+        }
+        setIndexStatuses(map);
+      }
+    } catch {
+      // Non-fatal: badges just stay hidden if the Python service is down.
     }
   };
 
@@ -60,6 +74,27 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="text-white text-xl">Loading meetings...</div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="text-center">
+          <div className="text-white text-xl mb-2">Couldn&apos;t load meetings</div>
+          <p className="text-slate-400 mb-4">The request to /api/meetings failed. Check that the server is running and try again.</p>
+          <button
+            onClick={() => {
+              setFetchError(false);
+              setLoading(true);
+              fetchMeetings();
+            }}
+            className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-slate-900"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -166,6 +201,7 @@ export default function DashboardPage() {
             formatDate={formatDate}
             getTaskStats={getTaskStats}
             searchQuery={searchQuery}
+            indexStatuses={indexStatuses}
           />
         ) : (
           <PeopleView searchQuery={searchQuery} />
@@ -180,6 +216,7 @@ function MeetingsView({
   formatDate,
   getTaskStats,
   searchQuery,
+  indexStatuses,
 }: {
   meetings: Meeting[];
   formatDate: (ts: string) => string;
@@ -189,6 +226,7 @@ function MeetingsView({
     overdue: number;
   };
   searchQuery: string;
+  indexStatuses: Record<string, IndexStatusValue>;
 }) {
   const filteredMeetings = meetings.filter((meeting) =>
     meeting.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -243,7 +281,17 @@ function MeetingsView({
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="text-xl font-semibold mb-2">{meeting.title}</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xl font-semibold">{meeting.title}</h3>
+                  {indexStatuses[meeting.meeting_id] === "completed" && (
+                    <span
+                      title="Searchable in chat"
+                      className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300"
+                    >
+                      💬 chat-ready
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-slate-400 mb-4">
                   {formatDate(meeting.timestamp)}
                 </p>

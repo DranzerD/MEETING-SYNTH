@@ -1,13 +1,20 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { AuraAnalysis } from "@/app/lib/aura/types";
+import type { IndexStatusValue } from "@/app/lib/types";
 import {
   validateTranscript,
   validateMeetingTitle,
   formatFileSize,
 } from "../lib/validation";
+
+const EXTRACTION_SOURCE_LABEL: Record<string, string> = {
+  local_ml: "Local ML (TF-IDF + LogisticRegression)",
+  llm: "LLM extraction pass",
+  ts_fallback: "TypeScript fallback (Python service unreachable)",
+};
 
 const SAMPLE_FILES = [
   { label: "Project planning", path: "/examples/meeting_1.txt" },
@@ -35,6 +42,31 @@ export default function AnalyzePage() {
   const [savedMeetingId, setSavedMeetingId] = useState<string | null>(null);
   const [charCount, setCharCount] = useState(0);
   const [fileSize, setFileSize] = useState(0);
+  const [indexStatus, setIndexStatus] = useState<IndexStatusValue | null>(null);
+  const pollAttempts = useRef(0);
+
+  // Poll indexing status after a successful analysis, so the user finds
+  // out when the meeting actually becomes queryable in chat instead of
+  // just trusting it silently happened. Stops after completed/failed, or
+  // after ~20 attempts (~40s) so a down Python service doesn't poll forever.
+  useEffect(() => {
+    if (!savedMeetingId || indexStatus === "completed" || indexStatus === "failed") return;
+
+    pollAttempts.current = 0;
+    const interval = setInterval(async () => {
+      pollAttempts.current += 1;
+      try {
+        const response = await fetch(`/api/index?meetingId=${encodeURIComponent(savedMeetingId)}`);
+        const data = await response.json();
+        if (data.success) setIndexStatus(data.status);
+      } catch {
+        // Transient fetch failure -- just try again next tick.
+      }
+      if (pollAttempts.current >= 20) clearInterval(interval);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [savedMeetingId, indexStatus]);
   const insightHighlights = useMemo(() => {
     if (!analysis) return [];
     const firstTask = analysis.tasks?.[0];
@@ -72,16 +104,29 @@ export default function AnalyzePage() {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    setTranscript(text);
-    setCharCount(text.length);
-    setFileSize(new Blob([text]).size);
+    try {
+      const text = await file.text();
+      setTranscript(text);
+      setCharCount(text.length);
+      setFileSize(new Blob([text]).size);
+      setError(null);
+    } catch {
+      setError("Couldn't read that file. Try a plain .txt file.");
+    }
   };
 
   const loadSample = useCallback(async (path: string) => {
-    const response = await fetch(path);
-    const text = await response.text();
-    setTranscript(text);
+    try {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error("Sample file not found");
+      const text = await response.text();
+      setTranscript(text);
+      setCharCount(text.length);
+      setFileSize(new Blob([text]).size);
+      setError(null);
+    } catch {
+      setError("Couldn't load that sample transcript. Try pasting your own instead.");
+    }
   }, []);
 
   const submitAnalysis = async () => {
@@ -108,6 +153,7 @@ export default function AnalyzePage() {
     setError(null);
     setLoading(true);
     setAnalysis(null);
+    setIndexStatus(null);
 
     try {
       const response = await fetch("/api/analyze", {
@@ -127,6 +173,7 @@ export default function AnalyzePage() {
       }
       setAnalysis(data.analysis);
       setSavedMeetingId(data.analysis.meeting_id);
+      setIndexStatus("queued");
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -168,12 +215,12 @@ export default function AnalyzePage() {
             Aura Analyzer Workspace
           </p>
           <h1 className="text-4xl font-semibold md:text-5xl">
-            Sellable insights, generated in seconds.
+            Paste a transcript, get structured meeting intelligence.
           </h1>
           <p className="mx-auto max-w-3xl text-lg text-slate-300">
-            Operate the polished workspace your customers will live in. Aura
-            Core stitches logistic classifiers, TextRank summaries, and
-            sentiment analysis into a single export-ready report.
+            Tasks, decisions, sentiment, and a summary, extracted by a local
+            ML pipeline (TF-IDF classifiers, VADER, TextRank) and then
+            indexed so you can ask questions about it in chat.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-slate-400">
             <span className="rounded-full border border-white/10 px-3 py-1">
@@ -362,6 +409,16 @@ export default function AnalyzePage() {
                 <p className="text-green-400 font-semibold flex items-center gap-2">
                   ✅ Meeting analyzed and saved!
                 </p>
+                {analysis?.stats.extractionSource && (
+                  <p className="text-xs text-slate-400">
+                    Extraction: {EXTRACTION_SOURCE_LABEL[analysis.stats.extractionSource] || analysis.stats.extractionSource}
+                  </p>
+                )}
+                <p className="text-xs text-slate-400 flex items-center gap-1">
+                  {indexStatus === "completed" && <span className="text-emerald-400">💬 Searchable in chat now.</span>}
+                  {indexStatus === "failed" && <span className="text-red-400">⚠ Indexing for chat failed -- you can retry from the meeting page.</span>}
+                  {(indexStatus === "queued" || indexStatus === "indexing") && <span>⏳ Indexing for chat…</span>}
+                </p>
                 <div className="flex gap-2">
                   <Link
                     href={`/meetings/${savedMeetingId}`}
@@ -382,27 +439,30 @@ export default function AnalyzePage() {
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
             <div>
-              <h2 className="text-xl font-semibold">What you get</h2>
+              <h2 className="text-xl font-semibold">What happens on analyze</h2>
               <p className="text-sm text-slate-400">
-                This UI is the exact experience prospects will see. Use it
-                during sales calls or ship it as a customer-facing workspace.
+                The transcript is sent to the Python service for extraction,
+                then chunked, embedded, and indexed in the background so it
+                becomes searchable in chat.
               </p>
             </div>
             <ul className="space-y-3 text-sm text-slate-300">
               <li>
-                • ML-powered action items, decisions, sentiment, and summaries.
+                • Tasks, decisions, sentiment, and a summary from a local ML
+                pipeline (TF-IDF classifiers, VADER, TextRank).
               </li>
-              <li>• Thread timeline that proves history during QBRs.</li>
+              <li>• A thread timeline if you set a thread key, for recurring meetings.</li>
               <li>
-                • JSON/CSV exports for CRMs, PM tools, or investor briefs.
+                • JSON/CSV exports of the extracted tasks and decisions.
               </li>
             </ul>
             <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm">
-              <p className="font-semibold text-white">Deployment-ready</p>
+              <p className="font-semibold text-white">If the Python service is down</p>
               <p className="text-slate-400">
-                Host the Next.js front-end anywhere (Vercel, Azure, Fly) and
-                point it at a FastAPI instance (Render, ECS, customer VPC). Zero
-                vendor lock-in.
+                Analysis falls back to a TypeScript heuristic pipeline so the
+                page still works, but that meeting won&apos;t be indexed for
+                chat until you re-index it once the service is back (see the
+                meeting detail page).
               </p>
             </div>
           </div>
@@ -647,15 +707,14 @@ export default function AnalyzePage() {
             </section>
             <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 text-center">
               <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">
-                Need client-ready PDFs?
+                Exports
               </p>
               <h4 className="mt-3 text-2xl font-semibold text-white">
-                Pipe these exports into your quoting or success stack.
+                Download the extracted tasks and decisions as JSON or CSV.
               </h4>
               <p className="mt-2 text-sm text-slate-400">
-                JSON + CSV outputs live under `analysis.exports`. Hook them to
-                HubSpot, Salesforce, Notion—whatever your go-to-market motion
-                needs.
+                Use the buttons above -- the full analysis as JSON, or tasks
+                and decisions as CSV, for importing elsewhere.
               </p>
             </section>
           </section>

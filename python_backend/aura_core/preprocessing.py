@@ -13,6 +13,16 @@ _CONTROL_PATTERN = re.compile(r"[\u0000-\u001F]+")
 _MULTI_SPACE = re.compile(r"\s+")
 _CAPITALIZED = re.compile(r"\b[A-Z][a-z]+\b")
 
+# Sentence-initial pronouns/articles are capitalized purely by position,
+# not because they're names -- without filtering these, "We should ship
+# Friday." extracts "We" as a candidate assignee/participant name. Mirrors
+# the same fix in src/app/lib/aura/preprocessing.ts's extractCapitalizedTokens.
+_COMMON_WORDS = {
+    "The", "This", "That", "These", "Those", "We", "They", "It", "He", "She",
+    "You", "Our", "Their", "His", "Her", "Someone", "Everyone", "Everybody",
+    "Anyone", "Nobody", "All", "Team",
+}
+
 # NLTK 3.9+ split the classic "punkt" sentence tokenizer data into two
 # resources: "punkt" and "punkt_tab" (the tables PunktTokenizer actually
 # loads at runtime). Downloading only "punkt" leaves sent_tokenize()
@@ -49,7 +59,10 @@ def sentence_split(text: str) -> List[str]:
 
 
 def extract_names(sentence: str) -> list[str]:
-  return [match.group(0) for match in _CAPITALIZED.finditer(sentence)]
+  return [
+      match.group(0) for match in _CAPITALIZED.finditer(sentence)
+      if match.group(0) not in _COMMON_WORDS
+  ]
 
 
 @dataclass

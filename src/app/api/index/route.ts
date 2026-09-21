@@ -69,15 +69,15 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const meetingId = searchParams.get("meetingId");
-  if (!meetingId) {
-    return NextResponse.json(
-      { success: false, error: "meetingId query param is required." },
-      { status: 400 }
-    );
-  }
+
+  // No meetingId -> bulk mode: every meeting the ledger has a status for,
+  // keyed by meeting_id. Lets the dashboard show a per-meeting "searchable
+  // in chat?" badge in one request instead of one per meeting.
+  const endpoint = meetingId
+    ? `${PY_API_URL.replace(/\/$/, "")}/index/status/${encodeURIComponent(meetingId)}`
+    : `${PY_API_URL.replace(/\/$/, "")}/index/meetings`;
 
   try {
-    const endpoint = `${PY_API_URL.replace(/\/$/, "")}/index/status/${encodeURIComponent(meetingId)}`;
     const pyResponse = await fetch(endpoint);
     const payload = await pyResponse.json();
     if (!pyResponse.ok) {
@@ -86,7 +86,9 @@ export async function GET(request: Request) {
         { status: pyResponse.status }
       );
     }
-    return NextResponse.json({ success: true, ...payload });
+    return meetingId
+      ? NextResponse.json({ success: true, ...payload })
+      : NextResponse.json({ success: true, statuses: payload });
   } catch (error: unknown) {
     console.error("/api/index status error", error);
     const message = error instanceof Error ? error.message : "Unexpected error";

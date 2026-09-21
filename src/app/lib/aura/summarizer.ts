@@ -26,16 +26,19 @@ export function buildSummary(
   sentences: string[],
   maxSentences = 5
 ): SummaryInsight {
-  const ranked = sentences
-    .map((sentence) => ({ sentence, score: sentenceScore(sentence) }))
+  // Pick the top-scoring sentences, then restore original document order
+  // (not score order) so the summary reads as a coherent excerpt rather
+  // than a shuffled list of "most important" fragments -- matching what
+  // the Python summarizer (aura_core/summarizer.py) already does.
+  const topByScore = sentences
+    .map((sentence, index) => ({ sentence, index, score: sentenceScore(sentence) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, maxSentences)
+    .sort((a, b) => a.index - b.index)
     .map((item) => item.sentence.trim());
 
-  const summaryText = ranked.join(" ");
-
   return {
-    sentences: ranked,
-    summaryText,
+    sentences: topByScore,
+    summaryText: topByScore.join(" "),
   };
 }
