@@ -1,0 +1,11 @@
+Customer escalation call - Northwind account
+
+Jordan: Northwind is threatening to churn over the API rate limits -- they're hitting the cap during their monthly batch job and it's blocking their reporting pipeline.
+Support lead: How urgent is this on their end?
+Jordan: They said if it's not resolved this week they'll start evaluating competitors.
+Support lead: We decided to raise their rate limit temporarily to unblock the batch job while we figure out a permanent fix.
+Jordan: I'll get that change deployed today.
+Support lead: We also agreed Jordan should put together a permanent pricing tier proposal -- something between our current plans -- since Northwind isn't the only account running into this.
+Jordan: I'll have a draft proposal by next Tuesday.
+Support lead: Good. Let's also flag this pattern to product so it's considered in the pricing roadmap, not just patched account by account.
+Jordan: Agreed, I'll write up a short summary for the product team today as well.

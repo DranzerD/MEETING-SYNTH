@@ -55,6 +55,7 @@ export interface AuraAnalysis {
     taskCount: number;
     decisionCount: number;
     generatedAt: string;
+    extractionSource: "local_ml" | "llm" | "ts_fallback";
   };
   summary: SummaryInsight;
   tasks: TaskInsight[];

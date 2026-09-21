@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeTranscript } from "@/app/lib/aura/analyzer";
+import { getSessionUser, unauthorized } from "@/app/lib/auth";
 import fs from "fs";
 import path from "path";
 
@@ -48,6 +49,9 @@ const MAX_TRANSCRIPT_LENGTH = 500000; // 500KB character limit
 const MIN_TRANSCRIPT_LENGTH = 50;
 
 export async function POST(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   try {
     const body = await request.json();
     const transcript =
@@ -183,6 +187,7 @@ export async function POST(request: Request) {
       meeting_id: resolvedMeetingId,
       title: meetingTitle.trim(),
       timestamp,
+      createdBy: user.sub,
       transcript: trimmedTranscript,
       ...analysis,
       tasks: (analysis.tasks || []).map((task: any, index: number) => ({

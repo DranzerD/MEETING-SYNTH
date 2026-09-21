@@ -1,0 +1,17 @@
+Engineering sprint planning - Week 1
+
+Dana: Let's talk about the Kubernetes migration. Infra pushed back and we agreed the migration timeline now targets Q3 instead of Q2, mainly to give us room to test the canary rollout process properly.
+Leo: I can own the flaky integration test suite. I'll have it stabilized by Wednesday.
+Dana: I'll own the migration runbook and start drafting it this week.
+Marcus: On the frontend side, we decided to postpone the design system refresh until after the migration ships, since we don't have bandwidth for both.
+Dana: Agreed. Let's also flag that the on-call rotation needs an update once the migration lands, since the new cluster changes our alerting setup.
+Leo: I'll file a ticket for that so it doesn't get lost.
+Marcus: Sounds good. I think that covers sprint planning for this week.
+Dana: One more thing -- QA flagged that the staging environment has been flaky for load tests, random timeouts under concurrent traffic.
+Leo: I looked into that a bit yesterday. I think it's related to the connection pool size on staging being too small, not an actual code issue.
+Dana: Can you bump the pool size and see if that clears it up before we rely on staging for migration testing?
+Leo: Yeah, I'll do that this afternoon and report back.
+Marcus: Appreciate it, we really don't want migration testing blocked on a flaky staging environment.
+Dana: Agreed. Let's check in on that specifically at Wednesday's standup.
+Leo: Sounds good, I'll have an update either way.
+Dana: Great, thanks everyone. Same time next week.

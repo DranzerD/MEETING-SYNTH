@@ -3,49 +3,41 @@ import Link from "next/link";
 
 const featureHighlights = [
   {
-    title: "ML-grade insights",
-    body: "Logistic regression classifiers, TextRank summaries, and sentiment tagging run locally inside Aura Core.",
+    title: "ML-grade extraction",
+    body: "TF-IDF + logistic regression classifiers (with an optional LLM pass) pull out tasks and decisions; VADER sentiment and a TextRank-style summary run alongside them.",
+  },
+  {
+    title: "Grounded meeting chat",
+    body: "Ask questions across every indexed meeting. Answers are retrieved from transcript chunks in a vector store and cited back to the meeting and chunk they came from -- never answered from the model's own memory.",
   },
   {
     title: "Thread memory",
-    body: "Every meeting snapshot is chained so reps can replay context and prove decisions across cycles.",
+    body: "Every analysis appends to a JSON chain per thread key, so a recurring meeting (e.g. a weekly standup) can be replayed as a timeline.",
   },
   {
     title: "One-click exports",
-    body: "Ship JSON + CSV artifacts to CRMs, PM tools, or investor updates without custom scripts.",
+    body: "JSON and CSV exports of tasks and decisions, ready to hand off to another tool.",
   },
-  {
-    title: "No vendor lock-in",
-    body: "Next.js frontend + FastAPI backend means you can self-host, white-label, or extend via SDKs.",
-  },
-];
-
-const proofPoints = [
-  { label: "Avg. prep time saved", value: "37 min" },
-  { label: "Decisions captured", value: "12k+" },
-  { label: "Enterprise pilots", value: "5" },
 ];
 
 const pipeline = [
   {
     label: "Next.js App",
-    detail:
-      "Secure workspace experience with auth, reviewer views, and download surfaces.",
+    detail: "Auth-gated workspace: analyzer, dashboard, meeting detail, and chat.",
   },
   {
     label: "API Bridge",
     detail:
-      "`/api/analyze` routes traffic to Aura Core (Python) or falls back to TS heuristics for offline demos.",
+      "`/api/analyze` routes traffic to the Python service, or falls back to TypeScript heuristics if it's unreachable.",
   },
   {
     label: "Aura Core (Python)",
     detail:
-      "Scikit-learn classifiers, VADER sentiment, TextRank summarizer, thread memory persistence.",
+      "scikit-learn classifiers, VADER sentiment, TextRank summarizer, and the RAG layer: chunking, local embeddings, Chroma, retrieval, and grounded generation.",
   },
   {
-    label: "Exports",
-    detail:
-      "JSON + CSV packages feed CRM, BI, or revops automations. Ready for SOC2-friendly hosting.",
+    label: "Chat + Exports",
+    detail: "Retrieval-augmented Q&A with citations, plus JSON/CSV exports of tasks and decisions.",
   },
 ];
 
@@ -60,16 +52,17 @@ export default function HomePage() {
         <div className="space-y-8 text-center md:text-left">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs uppercase tracking-[0.4em] text-slate-300">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-            Production ready
+            Local-first ML + RAG
           </span>
           <div className="space-y-4">
             <h1 className="text-4xl font-bold leading-tight text-white md:text-6xl">
-              Meeting intelligence teams actually open after the call.
+              Turn meeting transcripts into searchable, cited meeting memory.
             </h1>
             <p className="text-lg text-slate-300 md:text-xl">
-              Aura Synth ingests raw transcripts, distills decisions, and
-              packages everything your revenue operations stack needs.
-              Local-first today, cloud when you are.
+              Meeting Synth extracts tasks, decisions, and sentiment from a
+              transcript, then indexes it so you can ask questions across
+              every meeting you&apos;ve analyzed and get answers grounded in
+              the actual transcript text.
             </p>
           </div>
           <div className="flex flex-col gap-4 text-sm font-semibold md:flex-row">
@@ -92,19 +85,6 @@ export default function HomePage() {
               Ask Your Meetings
             </Link>
           </div>
-          <div className="grid gap-4 py-4 sm:grid-cols-3">
-            {proofPoints.map((point) => (
-              <div
-                key={point.label}
-                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left"
-              >
-                <p className="text-2xl font-bold text-white">{point.value}</p>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                  {point.label}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -115,14 +95,16 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 lg:flex-row">
           <div className="space-y-4 lg:w-1/3">
             <p className="text-xs uppercase tracking-[0.4em] text-indigo-300">
-              How it ships
+              How it works
             </p>
             <h2 className="text-3xl font-semibold text-white">
-              Local first, cloud when you need it.
+              Extraction pipeline, then a retrieval layer on top.
             </h2>
             <p className="text-slate-300">
-              Offline-first TypeScript fallbacks for demos, or route to Aura
-              Core (FastAPI) for production-grade ML.
+              A TypeScript fallback keeps the analyzer working even if the
+              Python service is offline; retrieval-augmented chat always
+              needs the Python service, since that&apos;s where the vector
+              store and embeddings live.
             </p>
           </div>
           <div className="flex-1 space-y-4">
@@ -163,13 +145,13 @@ export default function HomePage() {
       <section className="mx-auto max-w-4xl px-6 pb-24">
         <div className="rounded-[32px] border border-indigo-500/30 bg-indigo-500/10 p-10 text-center">
           <p className="text-sm uppercase tracking-[0.5em] text-indigo-200">
-            Ready?
+            Try it
           </p>
           <h3 className="mt-4 text-3xl font-semibold text-white">
-            Turn meeting notes into auditable intelligence.
+            Analyze a transcript, then ask it questions.
           </h3>
           <p className="mt-2 text-slate-200">
-            Local dev today. Enterprise cloud tomorrow.
+            Local dev today. See the README for setup and architecture.
           </p>
           <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Link
@@ -182,7 +164,7 @@ export default function HomePage() {
               href="/register"
               className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white"
             >
-              Create workspace login
+              Create an account
             </Link>
           </div>
         </div>

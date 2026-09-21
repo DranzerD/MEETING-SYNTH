@@ -1,0 +1,10 @@
+New hire onboarding standup
+
+Maya: Following up from hiring sync -- I've drafted the 30-60-90 day plan template and shared it in the team doc for feedback.
+Team lead: Nice, that was fast. Let's aim to finalize it by Wednesday so the two new backend hires starting next month get it on day one.
+Maya: I'll also own updating the onboarding checklist to reference the new template.
+Team lead: We decided new hires should get a dedicated onboarding buddy for the first two weeks, not just a manager check-in.
+Maya: I can put together a short list of who's available to be a buddy this round.
+Team lead: Great. We also agreed to add a "meet the team" doc with short bios, since new hires kept saying it took too long to learn who does what.
+Maya: I'll draft that alongside the checklist update.
+Team lead: Appreciate it. This should make the ramp-up a lot smoother than it's been.

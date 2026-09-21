@@ -2,6 +2,7 @@
 import "./globals.css";
 import Link from "next/link";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import AuthNav from "./lib/AuthNav";
 
 const sans = Space_Grotesk({
   subsets: ["latin"],
@@ -18,7 +19,6 @@ const mono = IBM_Plex_Mono({
 const navLinks = [
   { href: "/#features", label: "Product" },
   { href: "/#pipeline", label: "Architecture" },
-  { href: "/#plans", label: "Playbooks" },
 ];
 
 export default function RootLayout({
@@ -52,12 +52,7 @@ export default function RootLayout({
                       {link.label}
                     </a>
                   ))}
-                  <Link
-                    href="/login"
-                    className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.4em]"
-                  >
-                    Login
-                  </Link>
+                  <AuthNav />
                   <Link
                     href="/analyze"
                     className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-indigo-900/30 transition hover:scale-[1.02]"
@@ -87,8 +82,9 @@ export default function RootLayout({
                 Aura Intelligence
               </p>
               <p className="mt-3 text-slate-200">
-                Documentation, demos, and enterprise pilots available on
-                request. SOC2-ready hosting playbook included.
+                A meeting-intelligence system: transcript analysis, a local
+                ML pipeline, and retrieval-augmented chat over everything
+                that&apos;s been indexed.
               </p>
             </div>
             <div className="space-y-2">
@@ -110,17 +106,12 @@ export default function RootLayout({
               </Link>
             </div>
             <div className="space-y-2">
-              <p className="font-semibold text-white">Talk to us</p>
-              <a
-                href="mailto:founders@auralabs.dev"
-                className="text-indigo-300"
-              >
-                founders@auralabs.dev
-              </a>
+              <p className="font-semibold text-white">About</p>
               <p>
-                © {new Date().getFullYear()} Aura Intelligence. Built for teams
-                who need decisions, not decks.
+                Local-first: your own Next.js server, FastAPI service, and
+                vector store. See the README for architecture and setup.
               </p>
+              <p>© {new Date().getFullYear()} Meeting Synth.</p>
             </div>
           </div>
         </footer>

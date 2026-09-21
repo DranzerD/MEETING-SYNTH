@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser, unauthorized } from "@/app/lib/auth";
 
 const PY_API_URL = process.env.AURA_PY_API_URL;
 
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 // provider key isn't configured, we surface that plainly instead of
 // silently degrading.
 export async function POST(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   if (!PY_API_URL) {
     return NextResponse.json(
       {

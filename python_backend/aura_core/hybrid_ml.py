@@ -1,15 +1,11 @@
 """
-Hybrid ML approach: Local models + LLM fallback for low-confidence predictions.
-
-This demonstrates production ML engineering: cost-effective local models
-with high-quality LLM fallback for edge cases.
+Hybrid ML approach: local classifier first, LLM fallback for low-confidence
+predictions.
 
 Architecture:
-  1. Local TF-IDF classifier (fast, free) - handles 80% of cases
-  2. Confidence threshold check (< 65% confidence)
-  3. LLM fallback (OpenAI/Anthropic) for low-confidence items
-  
-Resume highlight: Hybrid ML architecture, cost optimization, fallback strategies
+  1. Local TF-IDF + LogisticRegression classifier (fast, free, no network)
+  2. Confidence threshold check (< 65% confidence by default)
+  3. LLM fallback (Groq/OpenAI/Anthropic) for low-confidence items only
 """
 
 from __future__ import annotations
@@ -18,6 +14,10 @@ import os
 from dataclasses import dataclass
 from typing import Sequence, Literal
 import json
+
+from .observability import get_logger
+
+logger = get_logger("hybrid_ml")
 
 
 @dataclass
@@ -61,7 +61,7 @@ class LLMFallback:
         self.enabled = bool(self.api_key)
 
         if not self.enabled:
-            print(f"⚠️  LLM fallback disabled: no {provider.upper()}_API_KEY found")
+            logger.info("llm_fallback_disabled provider=%s reason=no_api_key", provider)
     
     def extract_tasks_llm(self, sentences: Sequence[str]) -> list[HybridResult]:
         """
@@ -103,7 +103,7 @@ Respond with JSON array of tasks. If no tasks, return empty array []."""
                 for task in tasks
             ]
         except Exception as e:
-            print(f"⚠️  LLM fallback failed: {e}")
+            logger.warning("llm_extraction_failed provider=%s error=%s", self.provider, e)
             return []
     
     def classify_sentence_llm(
@@ -176,7 +176,7 @@ Respond with JSON:
                     cost_estimate=0.0005
                 )
         except Exception as e:
-            print(f"⚠️  LLM classification failed: {e}")
+            logger.warning("llm_classification_failed provider=%s error=%s", self.provider, e)
             return HybridResult(
                 prediction=0,
                 confidence=0.0,
@@ -403,7 +403,6 @@ class HybridClassifier:
         }
 
 
-# Resume-worthy exports
 __all__ = [
     "HybridResult",
     "LLMFallback", 

@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
+from .config import CACHE_DIR
 from .models import ModelRegistry
 from .preprocessing import Document
 from .sentiment import analyze_sentiment
@@ -30,7 +31,8 @@ class AuraPipeline:
   def __init__(self, base_dir: Path | None = None):
     self.base_dir = Path(base_dir or Path(__file__).resolve().parents[1])
     self.model_registry = ModelRegistry(self.base_dir / "models")
-    self.memory = ThreadMemory(self.base_dir / "cache" / "threads.json")
+    cache_dir = CACHE_DIR if base_dir is None else self.base_dir / "cache"
+    self.memory = ThreadMemory(cache_dir / "threads.json")
 
   def analyze(self, transcript: str, *, meeting_id: str | None = None,
               thread_key: str | None = None, use_llm: bool = False) -> AnalysisResult:

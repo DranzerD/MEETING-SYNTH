@@ -8,9 +8,10 @@ the conversational answer at query time calls out to an LLM.
 
 from __future__ import annotations
 
-import os
 import threading
 from typing import Sequence
+
+from .config import EMBEDDING_MODEL
 
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384  # fixed output size of all-MiniLM-L6-v2
@@ -29,8 +30,7 @@ def _get_model():
   with _model_lock:
     if _model is None:
       from sentence_transformers import SentenceTransformer
-      model_name = os.getenv("AURA_EMBEDDING_MODEL", DEFAULT_MODEL_NAME)
-      _model = SentenceTransformer(model_name)
+      _model = SentenceTransformer(EMBEDDING_MODEL)
   return _model
 
 

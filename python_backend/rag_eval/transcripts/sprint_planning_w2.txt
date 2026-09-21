@@ -1,0 +1,16 @@
+Engineering sprint planning - Week 3 follow-up
+
+Dana: Quick update on the Kubernetes migration -- the Q3 timeline is still on track. The runbook is about 80% done and I'll finish it by Friday.
+Leo: The flaky test suite has been stable all week, no failures since the fix landed.
+Marcus: We decided to add an extra canary rollout stage before the full cutover, just given how much traffic the notifications service handles.
+Dana: Good call. That pushes the full cutover date by about three days but it's worth the safety margin.
+Marcus: We also agreed to hold off on the design system refresh for one more sprint -- same reasoning as before, migration still takes priority.
+Leo: Should we loop in the on-call team now about the alerting changes?
+Dana: Yes, let's get that on next week's agenda so it's not a last-minute scramble.
+Marcus: Quick side note -- the staging connection pool fix Leo made last week worked, load tests have been clean since then.
+Leo: Good, glad that's resolved. I closed out the ticket for it this morning.
+Dana: Perfect, one less risk heading into the migration.
+Marcus: Also wanted to mention support saw an uptick in questions about our uptime SLA this week, probably worth a heads up to the team.
+Dana: Noted, let's not get distracted from the migration prep though -- that's the priority through Q3.
+Leo: Agreed, migration first.
+Dana: Alright, that's everything for today. Thanks all.

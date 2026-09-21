@@ -72,6 +72,17 @@ export function validateMeetingTitle(title: string): {
   return { valid: true };
 }
 
+/** Rejects (rather than silently rewrites) a meeting id that could escape
+ * the meetings data directory when joined into a filesystem path -- ids
+ * must already be safe (analyze/route.ts sanitizes at creation time), so a
+ * path separator or ".." here means the id was tampered with or came from
+ * an untrusted source, not that it needs cleaning up. */
+export function isSafeMeetingId(id: string): boolean {
+  if (!id || typeof id !== "string" || id.length > 150) return false;
+  if (id.includes("..") || id.includes("/") || id.includes("\\")) return false;
+  return true;
+}
+
 export function sanitizeFilename(filename: string): string {
   // Remove or replace characters that are problematic in filenames
   return filename

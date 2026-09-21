@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser, unauthorized } from "@/app/lib/auth";
 
 const PY_API_URL = process.env.AURA_PY_API_URL;
 
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 // meeting list page can call this per-meeting to make older meetings
 // queryable in chat.
 export async function POST(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   if (!PY_API_URL) {
     return NextResponse.json(
       { success: false, error: "AURA_PY_API_URL is not configured." },
@@ -53,6 +57,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   if (!PY_API_URL) {
     return NextResponse.json(
       { success: false, error: "AURA_PY_API_URL is not configured." },

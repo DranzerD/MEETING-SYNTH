@@ -21,6 +21,7 @@ export function analyzeTranscript(transcript: string): AuraAnalysis {
     taskCount: tasks.length,
     decisionCount: decisions.length,
     generatedAt,
+    extractionSource: "ts_fallback" as const,
   };
 
   const safeTimestamp = generatedAt.replace(/[:.]/g, "-");

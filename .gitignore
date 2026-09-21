@@ -46,9 +46,12 @@ next-env.d.ts
 python_backend/.venv
 python_backend/__pycache__
 python_backend/**/__pycache__
+python_backend/.pytest_cache
 python_backend/cache/
-python_backend/results/
 python_backend/output/
+# python_backend/results/ is intentionally NOT ignored: it holds the
+# benchmark/eval JSON that backs the numbers in README.md. Regenerate with
+# benchmark.py / benchmark_retrieval.py / rag_eval, and commit the update.
 
 # RAG data (generated locally -- chunks/embeddings live in Chroma, not git)
 python_backend/chroma_db/

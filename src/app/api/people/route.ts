@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getSessionUser, unauthorized } from "@/app/lib/auth";
 
 const DATA_DIR = path.join(process.cwd(), "data", "meetings");
 
@@ -8,7 +9,10 @@ function normalizeName(name: string): string {
   return name.toLowerCase().trim();
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   try {
     if (!fs.existsSync(DATA_DIR)) {
       return NextResponse.json({ success: true, people: [] });

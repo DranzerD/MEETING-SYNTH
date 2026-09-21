@@ -227,7 +227,6 @@ def generate_classification_report(
     )
 
 
-# Resume-worthy: Demonstrate understanding of ML evaluation
 __all__ = [
     "ModelMetrics",
     "ConfidenceCalibration", 

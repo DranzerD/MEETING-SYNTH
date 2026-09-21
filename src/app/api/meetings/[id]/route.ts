@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getSessionUser, unauthorized } from "@/app/lib/auth";
+import { isSafeMeetingId } from "@/app/lib/validation";
 
 const DATA_DIR = path.join(process.cwd(), "data", "meetings");
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   try {
-    const { id } = params;
+    const { id } = await params;
+    if (!isSafeMeetingId(id)) {
+      return NextResponse.json({ success: false, error: "Invalid meeting id" }, { status: 400 });
+    }
     const filepath = path.join(DATA_DIR, `${id}.json`);
 
     if (!fs.existsSync(filepath)) {
@@ -34,10 +42,16 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   try {
-    const { id } = params;
+    const { id } = await params;
+    if (!isSafeMeetingId(id)) {
+      return NextResponse.json({ success: false, error: "Invalid meeting id" }, { status: 400 });
+    }
     const filepath = path.join(DATA_DIR, `${id}.json`);
 
     if (!fs.existsSync(filepath)) {

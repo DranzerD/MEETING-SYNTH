@@ -18,10 +18,11 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .chunking import chunk_transcript
+from .config import CACHE_DIR
 from .embeddings import embed_texts
 from .vectorstore import ChunkVectorStore
 
-DEFAULT_LEDGER_PATH = Path(__file__).resolve().parents[1] / "cache" / "index_status.json"
+DEFAULT_LEDGER_PATH = CACHE_DIR / "index_status.json"
 
 
 @dataclass
@@ -55,6 +56,12 @@ class IndexLedger:
   def get(self, meeting_id: str) -> Dict[str, Any] | None:
     return self._read().get(meeting_id)
 
+  def all_statuses(self) -> Dict[str, Any]:
+    """Every meeting the ledger has ever recorded a status for. Used by the
+    dashboard to show a "searchable in chat?" badge per meeting without a
+    round trip per meeting."""
+    return self._read()
+
   def mark_queued(self, meeting_id: str) -> None:
     self.set(IndexStatus(meeting_id=meeting_id, status="queued"))
 
@@ -72,6 +79,13 @@ def index_meeting(meeting_id: str, transcript: str, *, store: ChunkVectorStore, 
 
   try:
     chunks = chunk_transcript(transcript, meeting_id)
+    # Upsert alone only overwrites chunk ids that still exist in the new
+    # version -- if an edited transcript now produces fewer chunks than
+    # before, the extra old ones (e.g. chunk-7..9 from a longer prior
+    # version) would otherwise never be removed and would keep showing up
+    # in retrieval. Deleting the meeting's chunks first makes re-indexing
+    # idempotent regardless of how the chunk count changes between runs.
+    store.delete_meeting(meeting_id)
     if chunks:
       embeddings = embed_texts([c.text for c in chunks])
       store.add_chunks(chunks, embeddings)

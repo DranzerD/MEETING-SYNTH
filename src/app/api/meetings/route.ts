@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getSessionUser, unauthorized } from "@/app/lib/auth";
+import { isSafeMeetingId } from "@/app/lib/validation";
 
 const DATA_DIR = path.join(process.cwd(), "data", "meetings");
 
@@ -11,7 +13,10 @@ function ensureDataDir() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   try {
     ensureDataDir();
 
@@ -38,13 +43,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) return unauthorized();
+
   try {
     ensureDataDir();
 
     const body = await request.json();
     const { meetingData } = body;
 
-    if (!meetingData || !meetingData.meeting_id) {
+    if (!meetingData || !meetingData.meeting_id || !isSafeMeetingId(meetingData.meeting_id)) {
       return NextResponse.json(
         { success: false, error: "Invalid meeting data" },
         { status: 400 }

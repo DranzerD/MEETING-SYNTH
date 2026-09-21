@@ -20,9 +20,10 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .chunking import TranscriptChunk
+from .config import CHROMA_DIR
 
 COLLECTION_NAME = "meeting_chunks"
-DEFAULT_PERSIST_DIR = Path(__file__).resolve().parents[1] / "chroma_db"
+DEFAULT_PERSIST_DIR = CHROMA_DIR
 
 
 class ChunkVectorStore:

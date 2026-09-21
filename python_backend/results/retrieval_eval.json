@@ -1,0 +1,497 @@
+{
+  "corpus_meetings": 8,
+  "corpus_chunks": 12,
+  "num_answerable_questions": 15,
+  "num_unanswerable_questions": 5,
+  "with_reranking": {
+    "reranked": true,
+    "retrieval_quality_by_k": {
+      "3": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.467,
+        "hit_rate_at_k": 1.0,
+        "mrr": 0.967,
+        "num_questions": 15
+      },
+      "5": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.333,
+        "hit_rate_at_k": 1.0,
+        "mrr": 0.967,
+        "num_questions": 15
+      }
+    },
+    "refusal_gate": {
+      "min_relevance_score_threshold": 0.3,
+      "unanswerable_questions": 5,
+      "correctly_refused": 5,
+      "refusal_rate": 1.0,
+      "answerable_top_score_mean": 0.4649,
+      "answerable_top_score_min": 0.2633,
+      "unanswerable_top_score_mean": 0.194,
+      "unanswerable_top_score_max": 0.2796
+    },
+    "per_question_detail_at_k0": [
+      {
+        "qid": "q01",
+        "question": "What is the current timeline for the Kubernetes migration?",
+        "expected_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2"
+        ],
+        "retrieved_meetings": [
+          "eval-sprint-planning-w2",
+          "eval-sprint-planning-w1",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.483,
+        "hit": true
+      },
+      {
+        "qid": "q02",
+        "question": "Who owns the migration runbook?",
+        "expected_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2"
+        ],
+        "retrieved_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.2633,
+        "hit": true
+      },
+      {
+        "qid": "q03",
+        "question": "What caused the checkout outage?",
+        "expected_meetings": [
+          "eval-incident-postmortem"
+        ],
+        "retrieved_meetings": [
+          "eval-incident-postmortem",
+          "eval-incident-postmortem",
+          "eval-sprint-planning-w1"
+        ],
+        "top_score": 0.568,
+        "hit": true
+      },
+      {
+        "qid": "q04",
+        "question": "What safeguard was added to prevent the checkout database failure from cascading?",
+        "expected_meetings": [
+          "eval-incident-postmortem"
+        ],
+        "retrieved_meetings": [
+          "eval-incident-postmortem",
+          "eval-incident-postmortem",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.3789,
+        "hit": true
+      },
+      {
+        "qid": "q05",
+        "question": "By how much was the travel budget cut?",
+        "expected_meetings": [
+          "eval-budget-review"
+        ],
+        "retrieved_meetings": [
+          "eval-budget-review",
+          "eval-sprint-planning-w2",
+          "eval-hiring-sync"
+        ],
+        "top_score": 0.5583,
+        "hit": true
+      },
+      {
+        "qid": "q06",
+        "question": "How much was approved for additional GPU credits?",
+        "expected_meetings": [
+          "eval-budget-review"
+        ],
+        "retrieved_meetings": [
+          "eval-budget-review",
+          "eval-hiring-sync",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.3576,
+        "hit": true
+      },
+      {
+        "qid": "q07",
+        "question": "How many backend engineering positions were opened for next quarter?",
+        "expected_meetings": [
+          "eval-hiring-sync"
+        ],
+        "retrieved_meetings": [
+          "eval-hiring-sync",
+          "eval-incident-postmortem",
+          "eval-onboarding-standup"
+        ],
+        "top_score": 0.4754,
+        "hit": true
+      },
+      {
+        "qid": "q08",
+        "question": "What did the team decide about the open design requisition?",
+        "expected_meetings": [
+          "eval-hiring-sync"
+        ],
+        "retrieved_meetings": [
+          "eval-hiring-sync",
+          "eval-architecture-review",
+          "eval-budget-review"
+        ],
+        "top_score": 0.3866,
+        "hit": true
+      },
+      {
+        "qid": "q09",
+        "question": "What did the Northwind account threaten to do over API rate limits?",
+        "expected_meetings": [
+          "eval-customer-escalation"
+        ],
+        "retrieved_meetings": [
+          "eval-customer-escalation",
+          "eval-architecture-review",
+          "eval-budget-review"
+        ],
+        "top_score": 0.5835,
+        "hit": true
+      },
+      {
+        "qid": "q10",
+        "question": "Who is putting together the permanent pricing tier proposal for Northwind?",
+        "expected_meetings": [
+          "eval-customer-escalation"
+        ],
+        "retrieved_meetings": [
+          "eval-customer-escalation",
+          "eval-hiring-sync",
+          "eval-budget-review"
+        ],
+        "top_score": 0.6065,
+        "hit": true
+      },
+      {
+        "qid": "q11",
+        "question": "What messaging technology was chosen for the notifications service?",
+        "expected_meetings": [
+          "eval-architecture-review"
+        ],
+        "retrieved_meetings": [
+          "eval-architecture-review",
+          "eval-sprint-planning-w2",
+          "eval-incident-postmortem"
+        ],
+        "top_score": 0.4131,
+        "hit": true
+      },
+      {
+        "qid": "q12",
+        "question": "Why was gRPC rejected for the notifications service?",
+        "expected_meetings": [
+          "eval-architecture-review"
+        ],
+        "retrieved_meetings": [
+          "eval-architecture-review",
+          "eval-sprint-planning-w2",
+          "eval-budget-review"
+        ],
+        "top_score": 0.5709,
+        "hit": true
+      },
+      {
+        "qid": "q13",
+        "question": "What is the policy for new hires in their first days at the company?",
+        "expected_meetings": [
+          "eval-hiring-sync",
+          "eval-onboarding-standup"
+        ],
+        "retrieved_meetings": [
+          "eval-onboarding-standup",
+          "eval-hiring-sync",
+          "eval-customer-escalation"
+        ],
+        "top_score": 0.32,
+        "hit": true
+      },
+      {
+        "qid": "q14",
+        "question": "What did the team decide about onboarding buddies for new hires?",
+        "expected_meetings": [
+          "eval-onboarding-standup"
+        ],
+        "retrieved_meetings": [
+          "eval-onboarding-standup",
+          "eval-hiring-sync",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.5616,
+        "hit": true
+      },
+      {
+        "qid": "q15",
+        "question": "What was decided about the design system refresh?",
+        "expected_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2"
+        ],
+        "retrieved_meetings": [
+          "eval-hiring-sync",
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2"
+        ],
+        "top_score": 0.4464,
+        "hit": true
+      }
+    ]
+  },
+  "without_reranking": {
+    "reranked": false,
+    "retrieval_quality_by_k": {
+      "3": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.467,
+        "hit_rate_at_k": 1.0,
+        "mrr": 0.922,
+        "num_questions": 15
+      },
+      "5": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.347,
+        "hit_rate_at_k": 1.0,
+        "mrr": 0.922,
+        "num_questions": 15
+      }
+    },
+    "refusal_gate": {
+      "min_relevance_score_threshold": 0.3,
+      "unanswerable_questions": 5,
+      "correctly_refused": 4,
+      "refusal_rate": 0.8,
+      "answerable_top_score_mean": 0.4884,
+      "answerable_top_score_min": 0.3403,
+      "unanswerable_top_score_mean": 0.2499,
+      "unanswerable_top_score_max": 0.3415
+    },
+    "per_question_detail_at_k0": [
+      {
+        "qid": "q01",
+        "question": "What is the current timeline for the Kubernetes migration?",
+        "expected_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2"
+        ],
+        "retrieved_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.6539,
+        "hit": true
+      },
+      {
+        "qid": "q02",
+        "question": "Who owns the migration runbook?",
+        "expected_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2"
+        ],
+        "retrieved_meetings": [
+          "eval-architecture-review",
+          "eval-sprint-planning-w2",
+          "eval-sprint-planning-w1"
+        ],
+        "top_score": 0.4247,
+        "hit": true
+      },
+      {
+        "qid": "q03",
+        "question": "What caused the checkout outage?",
+        "expected_meetings": [
+          "eval-incident-postmortem"
+        ],
+        "retrieved_meetings": [
+          "eval-incident-postmortem",
+          "eval-incident-postmortem",
+          "eval-sprint-planning-w1"
+        ],
+        "top_score": 0.568,
+        "hit": true
+      },
+      {
+        "qid": "q04",
+        "question": "What safeguard was added to prevent the checkout database failure from cascading?",
+        "expected_meetings": [
+          "eval-incident-postmortem"
+        ],
+        "retrieved_meetings": [
+          "eval-incident-postmortem",
+          "eval-sprint-planning-w1",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.3789,
+        "hit": true
+      },
+      {
+        "qid": "q05",
+        "question": "By how much was the travel budget cut?",
+        "expected_meetings": [
+          "eval-budget-review"
+        ],
+        "retrieved_meetings": [
+          "eval-budget-review",
+          "eval-architecture-review",
+          "eval-sprint-planning-w1"
+        ],
+        "top_score": 0.5583,
+        "hit": true
+      },
+      {
+        "qid": "q06",
+        "question": "How much was approved for additional GPU credits?",
+        "expected_meetings": [
+          "eval-budget-review"
+        ],
+        "retrieved_meetings": [
+          "eval-budget-review",
+          "eval-hiring-sync",
+          "eval-customer-escalation"
+        ],
+        "top_score": 0.3576,
+        "hit": true
+      },
+      {
+        "qid": "q07",
+        "question": "How many backend engineering positions were opened for next quarter?",
+        "expected_meetings": [
+          "eval-hiring-sync"
+        ],
+        "retrieved_meetings": [
+          "eval-hiring-sync",
+          "eval-onboarding-standup",
+          "eval-sprint-planning-w2"
+        ],
+        "top_score": 0.4754,
+        "hit": true
+      },
+      {
+        "qid": "q08",
+        "question": "What did the team decide about the open design requisition?",
+        "expected_meetings": [
+          "eval-hiring-sync"
+        ],
+        "retrieved_meetings": [
+          "eval-hiring-sync",
+          "eval-architecture-review",
+          "eval-budget-review"
+        ],
+        "top_score": 0.3866,
+        "hit": true
+      },
+      {
+        "qid": "q09",
+        "question": "What did the Northwind account threaten to do over API rate limits?",
+        "expected_meetings": [
+          "eval-customer-escalation"
+        ],
+        "retrieved_meetings": [
+          "eval-customer-escalation",
+          "eval-budget-review",
+          "eval-hiring-sync"
+        ],
+        "top_score": 0.5835,
+        "hit": true
+      },
+      {
+        "qid": "q10",
+        "question": "Who is putting together the permanent pricing tier proposal for Northwind?",
+        "expected_meetings": [
+          "eval-customer-escalation"
+        ],
+        "retrieved_meetings": [
+          "eval-customer-escalation",
+          "eval-hiring-sync",
+          "eval-budget-review"
+        ],
+        "top_score": 0.6065,
+        "hit": true
+      },
+      {
+        "qid": "q11",
+        "question": "What messaging technology was chosen for the notifications service?",
+        "expected_meetings": [
+          "eval-architecture-review"
+        ],
+        "retrieved_meetings": [
+          "eval-architecture-review",
+          "eval-sprint-planning-w2",
+          "eval-architecture-review"
+        ],
+        "top_score": 0.4131,
+        "hit": true
+      },
+      {
+        "qid": "q12",
+        "question": "Why was gRPC rejected for the notifications service?",
+        "expected_meetings": [
+          "eval-architecture-review"
+        ],
+        "retrieved_meetings": [
+          "eval-architecture-review",
+          "eval-architecture-review",
+          "eval-incident-postmortem"
+        ],
+        "top_score": 0.5709,
+        "hit": true
+      },
+      {
+        "qid": "q13",
+        "question": "What is the policy for new hires in their first days at the company?",
+        "expected_meetings": [
+          "eval-hiring-sync",
+          "eval-onboarding-standup"
+        ],
+        "retrieved_meetings": [
+          "eval-hiring-sync",
+          "eval-onboarding-standup",
+          "eval-sprint-planning-w2"
+        ],
+        "top_score": 0.3403,
+        "hit": true
+      },
+      {
+        "qid": "q14",
+        "question": "What did the team decide about onboarding buddies for new hires?",
+        "expected_meetings": [
+          "eval-onboarding-standup"
+        ],
+        "retrieved_meetings": [
+          "eval-onboarding-standup",
+          "eval-hiring-sync",
+          "eval-sprint-planning-w2"
+        ],
+        "top_score": 0.5616,
+        "hit": true
+      },
+      {
+        "qid": "q15",
+        "question": "What was decided about the design system refresh?",
+        "expected_meetings": [
+          "eval-sprint-planning-w1",
+          "eval-sprint-planning-w2"
+        ],
+        "retrieved_meetings": [
+          "eval-hiring-sync",
+          "eval-architecture-review",
+          "eval-sprint-planning-w1"
+        ],
+        "top_score": 0.4464,
+        "hit": true
+      }
+    ]
+  },
+  "benchmark_timestamp": "2026-09-21T08:37:52.708782Z"
+}

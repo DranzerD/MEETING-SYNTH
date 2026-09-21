@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .config import CHUNK_OVERLAP_SENTENCES, CHUNK_SIZE_WORDS
 from .preprocessing import clean_text, sentence_split
 
 # Matches a leading "Speaker Name: ..." attribution, when the transcript
@@ -19,12 +20,13 @@ from .preprocessing import clean_text, sentence_split
 # best-effort: it degrades to `speaker=None` rather than mis-tagging text.
 _SPEAKER_LINE = re.compile(r"^\s*([A-Z][A-Za-z0-9 .'-]{1,40}):\s+(.+)$")
 
-# ~180 words keeps a chunk well under all-MiniLM-L6-v2's 256 token window
-# (a token is usually < 1 word) while still holding a few sentences of real
-# context. 2 sentences of overlap means a fact stated right at a chunk
+# ~180 words (AURA_CHUNK_SIZE_WORDS) keeps a chunk well under
+# all-MiniLM-L6-v2's 256 token window (a token is usually < 1 word) while
+# still holding a few sentences of real context. 2 sentences of overlap
+# (AURA_CHUNK_OVERLAP_SENTENCES) means a fact stated right at a chunk
 # boundary still appears whole in at least one chunk.
-DEFAULT_CHUNK_SIZE_WORDS = 180
-DEFAULT_CHUNK_OVERLAP_SENTENCES = 2
+DEFAULT_CHUNK_SIZE_WORDS = CHUNK_SIZE_WORDS
+DEFAULT_CHUNK_OVERLAP_SENTENCES = CHUNK_OVERLAP_SENTENCES
 
 
 @dataclass

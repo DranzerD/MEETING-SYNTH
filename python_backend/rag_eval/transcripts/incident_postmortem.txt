@@ -1,0 +1,17 @@
+Incident postmortem - checkout outage
+
+Omar: Root cause was database connection pool exhaustion -- a deploy this morning removed a timeout setting by accident, so stale connections piled up until the pool was full and new requests started failing.
+Priya: How long was checkout actually down?
+Omar: About 22 minutes of full outage, then another 15 minutes of degraded performance while it recovered.
+Priya: We decided to add a circuit breaker around the checkout database calls so a pool exhaustion like this fails fast instead of cascading.
+Omar: I'll own writing up the full postmortem doc and have it ready by Friday.
+Priya: We also agreed to add an alert on connection pool utilization so we catch this before it becomes an outage next time.
+Omar: I'll file that as a follow-up ticket for the observability team.
+Priya: Good. Let's also make sure the deploy checklist gets updated to call out timeout settings specifically, since that's what caused this.
+Omar: Agreed, I'll add that today.
+Priya: For the record, let's also note this is the second connection-pool-related incident this quarter, so I think it's worth a broader review of how we configure pools across services, not just checkout.
+Omar: Good point. I'll add that as a discussion topic for next quarter's infra planning rather than trying to boil the ocean in this postmortem.
+Priya: Sounds right. Last thing -- customer communication. Support said the status page update went out about 8 minutes after the outage started.
+Omar: We agreed that's too slow. Support will get access to update the status page directly instead of routing through engineering.
+Priya: Good, that should cut the delay significantly next time.
+Omar: Agreed. I think that covers everything for this postmortem.
