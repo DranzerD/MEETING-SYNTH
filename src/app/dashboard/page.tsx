@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Meeting, IndexStatusValue } from "@/app/lib/types";
+import type { Meeting, IndexStatusValue, Person, PersonTask } from "@/app/lib/types";
 
 export default function DashboardPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -340,9 +340,9 @@ function MeetingsView({
 }
 
 function PeopleView({ searchQuery }: { searchQuery: string }) {
-  const [people, setPeople] = useState<any[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPerson, setSelectedPerson] = useState<any>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
   useEffect(() => {
     fetchPeople();
@@ -426,7 +426,8 @@ function PeopleView({ searchQuery }: { searchQuery: string }) {
 
           <div className="space-y-3">
             {selectedPerson.tasks
-              .sort((a: any, b: any) => {
+              .slice()
+              .sort((a: PersonTask, b: PersonTask) => {
                 if (a.completed !== b.completed) return a.completed ? 1 : -1;
                 if (a.deadline && b.deadline) {
                   return (
@@ -436,7 +437,7 @@ function PeopleView({ searchQuery }: { searchQuery: string }) {
                 }
                 return 0;
               })
-              .map((task: any, idx: number) => {
+              .map((task: PersonTask, idx: number) => {
                 const isOverdue =
                   task.deadline &&
                   new Date(task.deadline) < new Date() &&
@@ -460,7 +461,7 @@ function PeopleView({ searchQuery }: { searchQuery: string }) {
                             task.completed ? "line-through text-slate-500" : ""
                           }
                         >
-                          {task.task || task.text}
+                          {task.task}
                         </div>
                         <div className="flex gap-4 mt-2 text-sm text-slate-400">
                           <span>📅 {task.meetingTitle}</span>

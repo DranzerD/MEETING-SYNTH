@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { analyzeTranscript } from "@/app/lib/aura/analyzer";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
+import type { Decision, Sentiment, Stats, Task } from "@/app/lib/types";
+import type { TaskInsight } from "@/app/lib/aura/types";
 import fs from "fs";
 import path from "path";
 
@@ -14,12 +16,12 @@ function ensureDataDir() {
 }
 
 type PythonPayload = {
-  stats: any;
+  stats: Stats;
   summary: { summaryText?: string; sentences?: string[] };
-  tasks: any[];
-  decisions: any[];
-  sentiment: any;
-  thread?: any;
+  tasks: Task[];
+  decisions: Decision[];
+  sentiment: Sentiment;
+  thread?: { key: string; history: unknown[] } | null;
 };
 
 function normalizePythonPayload(payload: PythonPayload, transcript: string) {
@@ -157,8 +159,8 @@ export async function POST(request: Request) {
           );
         }
         analysis = normalizePythonPayload(payload, trimmedTranscript);
-      } catch (fetchError: any) {
-        if (fetchError.name === "AbortError") {
+      } catch (fetchError: unknown) {
+        if (fetchError instanceof Error && fetchError.name === "AbortError") {
           return NextResponse.json(
             {
               success: false,
@@ -190,7 +192,7 @@ export async function POST(request: Request) {
       createdBy: user.sub,
       transcript: trimmedTranscript,
       ...analysis,
-      tasks: (analysis.tasks || []).map((task: any, index: number) => ({
+      tasks: (analysis.tasks || []).map((task: Task | TaskInsight, index: number) => ({
         ...task,
         completed: false,
         id: `${resolvedMeetingId}_task_${Date.now()}_${index}`,
@@ -206,12 +208,13 @@ export async function POST(request: Request) {
     // Write file with error handling
     try {
       fs.writeFileSync(filepath, JSON.stringify(meetingData, null, 2), "utf-8");
-    } catch (writeError: any) {
+    } catch (writeError: unknown) {
       console.error("File write error:", writeError);
+      const message = writeError instanceof Error ? writeError.message : "Unknown error";
       return NextResponse.json(
         {
           success: false,
-          error: `Failed to save meeting data: ${writeError.message}`,
+          error: `Failed to save meeting data: ${message}`,
         },
         { status: 500 }
       );

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
+import type { Task, PersonTask } from "@/app/lib/types";
 
 const DATA_DIR = path.join(process.cwd(), "data", "meetings");
 
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
       string,
       {
         name: string;
-        tasks: any[];
+        tasks: PersonTask[];
         meetings: Set<string>;
       }
     >();
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
         const content = fs.readFileSync(path.join(DATA_DIR, file), "utf-8");
         const meeting = JSON.parse(content);
 
-        meeting.tasks?.forEach((task: any) => {
+        meeting.tasks?.forEach((task: Task) => {
           const assignee = task.assignee || "Unassigned";
           const normalizedName = normalizeName(assignee);
 

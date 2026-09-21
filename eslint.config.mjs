@@ -18,6 +18,11 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Not a JS/TS project -- without this, ESLint's default file
+      // discovery walks into python_backend/.venv and lints vendored
+      // package internals (e.g. torch's bundled .mjs utility scripts),
+      // which has nothing to do with this app's code quality.
+      "python_backend/**",
     ],
   },
 ];

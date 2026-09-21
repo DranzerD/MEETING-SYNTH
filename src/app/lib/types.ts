@@ -60,6 +60,17 @@ export type Meeting = {
   stats: Stats;
 };
 
+export type PersonTask = Task & { meetingId: string; meetingTitle: string; meetingDate: string };
+
+export type Person = {
+  name: string;
+  tasks: PersonTask[];
+  meetingCount: number;
+  taskCount: number;
+  openTasks: number;
+  overdueTasks: number;
+};
+
 export type IndexStatusValue = "queued" | "indexing" | "completed" | "failed";
 
 export type IndexStatus = {

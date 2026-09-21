@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, Suspense } from "react";
+import React, { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import type { Meeting, IndexStatus } from "@/app/lib/types";
@@ -20,17 +20,7 @@ function MeetingDetailInner() {
   const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null);
   const [indexing, setIndexing] = useState(false);
 
-  useEffect(() => {
-    fetchMeeting();
-  }, [params.id]);
-
-  useEffect(() => {
-    if (highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [meeting, highlightSnippet]);
-
-  const fetchIndexStatus = async (meetingId: string) => {
+  const fetchIndexStatus = useCallback(async (meetingId: string) => {
     try {
       const response = await fetch(`/api/index?meetingId=${encodeURIComponent(meetingId)}`);
       const data = await response.json();
@@ -38,9 +28,9 @@ function MeetingDetailInner() {
     } catch {
       // Non-fatal: the badge just stays hidden if the Python service is down.
     }
-  };
+  }, []);
 
-  const fetchMeeting = async () => {
+  const fetchMeeting = useCallback(async () => {
     try {
       const response = await fetch(`/api/meetings/${params.id}`);
       const data = await response.json();
@@ -53,7 +43,17 @@ function MeetingDetailInner() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id, fetchIndexStatus]);
+
+  useEffect(() => {
+    fetchMeeting();
+  }, [fetchMeeting]);
+
+  useEffect(() => {
+    if (highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [meeting, highlightSnippet]);
 
   const makeSearchable = async () => {
     if (!meeting) return;
