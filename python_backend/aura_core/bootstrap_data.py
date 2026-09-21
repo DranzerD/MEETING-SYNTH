@@ -1,0 +1,177 @@
+"""Seed data for lightweight classifiers.
+
+The idea is to keep the model fully local while still leveraging
+learned weights. We train small logistic models on curated sentences
+covering tasks/action items and decisions.
+"""
+
+from __future__ import annotations
+
+TaskExample = tuple[str, int]
+DecisionExample = tuple[str, str]
+
+TASK_EXAMPLES: list[TaskExample] = [
+    # Explicit action items with assignees and deadlines
+    ("John will finalize the onboarding deck by Friday.", 1),
+    ("Please follow up with finance about the new budget approvals.", 1),
+    ("Sarah must update the client about the delay tomorrow morning.", 1),
+    ("We should schedule a dry run with the support team.", 1),
+    ("Lisa is responsible for preparing demo scripts by next week.", 1),
+    ("Miguel to draft the integration checklist before EOW.", 1),
+    ("Connor will fix the authentication bug tonight.", 1),
+    ("Kim needs to coordinate with legal for the new terms.", 1),
+    ("Priya owns the analytics refresh and should send a draft Monday.", 1),
+    
+    # Team/group assignments
+    ("The engineering team should review the security audit by Wednesday.", 1),
+    ("Marketing needs to prepare the launch materials ASAP.", 1),
+    ("Design team will provide mockups for the new feature tomorrow.", 1),
+    ("Everyone must complete the compliance training by end of quarter.", 1),
+    ("All hands to contribute ideas for the offsite agenda.", 1),
+    
+    # Implicit tasks (harder to detect)
+    ("The API documentation requires attention before release.", 1),
+    ("Someone should reach out to the vendor about pricing.", 1),
+    ("We need eyes on the staging environment issues.", 1),
+    ("The database schema needs migration planning.", 1),
+    ("Code review is pending on PR #245.", 1),
+    
+    # Priority indicators
+    ("URGENT: Alex must escalate the production incident immediately.", 1),
+    ("Critical blocker - Rachel needs to unblock the deployment pipeline.", 1),
+    ("High priority: Tom should investigate the memory leak today.", 1),
+    ("Important follow-up required on the client feedback.", 1),
+    
+    # Different deadline phrasings
+    ("Jessica will deliver the quarterly report by December 31st.", 1),
+    ("The prototype is due next Monday morning.", 1),
+    ("David needs to submit the proposal by Q1 2025.", 1),
+    ("Eric should complete testing before the sprint ends.", 1),
+    ("Maria must send invoices by end of day.", 1),
+    
+    # Email/action-oriented language
+    ("@Michael: please review the contract terms and respond.", 1),
+    ("Action item for Lisa: schedule the stakeholder meeting.", 1),
+    ("TODO: Update the changelog before merging.", 1),
+    ("Reminder: James needs to file the expense report.", 1),
+    
+    # Conditional tasks
+    ("If the build passes, deploy to staging tonight.", 1),
+    ("Sara should contact support if the issue persists.", 1),
+    ("Notify the team once the migration is complete.", 1),
+    
+    # Multi-part tasks
+    ("Ben will coordinate with legal, then draft the agreement.", 1),
+    ("First, audit the codebase, then create tickets for tech debt.", 1),
+    
+    # Negatives/Non-tasks (label 0)
+    ("The database migration looked great in staging.", 0),
+    ("Everyone loved the new dashboard charts.", 0),
+    ("The project deadline is still the 28th.", 0),
+    ("Let's celebrate the successful launch!", 0),
+    ("The AI latency metrics are a little high but manageable.", 0),
+    ("QA reported zero Sev-1 issues in the last build.", 0),
+    ("The meeting went really well today.", 0),
+    ("Great progress on the API integration.", 0),
+    ("The client loved the presentation.", 0),
+    ("Performance has improved by 40 percent.", 0),
+    ("We hit our OKR targets for Q4.", 0),
+    ("The team is aligned on the roadmap.", 0),
+    ("Budget is tracking as expected.", 0),
+    ("No blockers reported this week.", 0),
+    ("Everything is on schedule.", 0),
+    ("The rollout was smooth.", 0),
+    ("Metrics look healthy across the board.", 0),
+    ("Strong user feedback on the new feature.", 0),
+    ("The architecture review went smoothly.", 0),
+    ("We're in good shape for launch.", 0),
+    
+    # Informational statements (not tasks)
+    ("The sprint velocity has increased.", 0),
+    ("Our SLA compliance is at 99.9 percent.", 0),
+    ("The product launched last Tuesday.", 0),
+    ("We discussed the new hiring plan.", 0),
+    ("The team uses Slack for communication.", 0),
+    ("Our main tech stack is Python and TypeScript.", 0),
+    ("The API runs on FastAPI framework.", 0),
+    ("Customer churn rate dropped this quarter.", 0),
+    
+    # Questions (not tasks)
+    ("Should we consider switching to microservices?", 0),
+    ("What's the status of the migration?", 0),
+    ("Has anyone heard back from the vendor?", 0),
+    ("When is the next release scheduled?", 0),
+    
+    # Past tense (completed, not future tasks)
+    ("Sarah finished the integration last week.", 0),
+    ("We already deployed the hotfix.", 0),
+    ("The team completed the security audit.", 0),
+    ("Marketing sent out the announcement yesterday.", 0),
+    
+    # Observations/opinions
+    ("The new design looks promising.", 0),
+    ("I think we're taking the right approach.", 0),
+    ("This seems like a good solution.", 0),
+    ("The architecture makes sense to me.", 0),
+]
+
+# decision label is one of {timeline, budget, technical, general}
+DECISION_EXAMPLES: list[DecisionExample] = [
+    # Timeline decisions
+    ("We decided to extend the beta window by one week.", "timeline"),
+    ("The team concluded we should postpone the customer webinar.", "timeline"),
+    ("We agreed to move the launch date to March 15th.", "timeline"),
+    ("Leadership approved an additional sprint for polish.", "timeline"),
+    ("We're pushing the release back two weeks for testing.", "timeline"),
+    ("The deadline has been extended to accommodate feedback.", "timeline"),
+    ("We decided to ship the MVP by end of Q1.", "timeline"),
+    ("The group chose to accelerate the roadmap timeline.", "timeline"),
+    ("We committed to a phased rollout starting next month.", "timeline"),
+    ("It was agreed to maintain the current sprint cadence.", "timeline"),
+    
+    # Budget decisions
+    ("The group agreed to reallocate 25k from marketing to GPUs.", "budget"),
+    ("Finance rejected the travel request for Lisbon.", "budget"),
+    ("We approved the additional headcount for Q2.", "budget"),
+    ("Leadership signed off on the 100k cloud infrastructure spend.", "budget"),
+    ("The budget committee greenlit the new tool purchases.", "budget"),
+    ("We decided to cut discretionary spending by 15 percent.", "budget"),
+    ("Finance approved the contractor extension through June.", "budget"),
+    ("We're allocating 50k for the conference sponsorship.", "budget"),
+    ("The team agreed to reduce AWS costs by optimizing instances.", "budget"),
+    ("We rejected the premium tier for now due to cost.", "budget"),
+    
+    # Technical decisions
+    ("Leadership approved moving the API to FastAPI for v2.", "technical"),
+    ("It was determined that we stick with PostgreSQL this quarter.", "technical"),
+    ("The architects greenlit the Graviton experiment for Q3.", "technical"),
+    ("We decided to adopt TypeScript for all new frontend code.", "technical"),
+    ("The team chose Next.js over vanilla React for the rewrite.", "technical"),
+    ("We're migrating from REST to GraphQL for the API.", "technical"),
+    ("Engineering approved switching to containerized deployments.", "technical"),
+    ("We agreed to implement Redis caching for performance.", "technical"),
+    ("The group decided on MongoDB for the new service.", "technical"),
+    ("We're standardizing on Python 3.11 across all projects.", "technical"),
+    ("Leadership greenlit the Kubernetes migration plan.", "technical"),
+    ("We chose to use GitHub Actions for CI/CD pipelines.", "technical"),
+    ("The architects approved the microservices architecture.", "technical"),
+    ("We decided to deprecate the legacy PHP codebase.", "technical"),
+    ("Engineering rejected the NoSQL approach for this use case.", "technical"),
+    
+    # General/strategic decisions
+    ("We chose to keep the hybrid roadmap for the next OKR cycle.", "general"),
+    ("Product signed off on the new naming convention.", "general"),
+    ("Legal approved the SOC2 wording change.", "general"),
+    ("We agreed to pivot the product strategy toward enterprise.", "general"),
+    ("The leadership team committed to remote-first hiring.", "general"),
+    ("We decided to rebrand the product next quarter.", "general"),
+    ("The board approved the Series A fundraising plan.", "general"),
+    ("We're sunsetting the legacy product line by EOY.", "general"),
+    ("HR greenlit the new performance review process.", "general"),
+    ("We chose to expand into the European market.", "general"),
+    ("The team agreed to focus on customer retention over acquisition.", "general"),
+    ("Marketing approved the new brand guidelines.", "general"),
+    ("We decided to partner with Acme Corp for distribution.", "general"),
+    ("Leadership committed to achieving carbon neutrality.", "general"),
+    ("We're moving to a subscription-based pricing model.", "general"),
+]

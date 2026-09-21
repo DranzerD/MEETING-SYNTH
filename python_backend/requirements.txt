@@ -1,0 +1,25 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+scikit-learn==1.5.2
+nltk==3.9.1
+vaderSentiment==3.3.2
+joblib==1.4.2
+numpy>=1.24.0
+pandas==2.2.3
+
+# --- RAG layer ---
+
+# Embeddings: local, free, no API key. chromadb==1.5.9 is pinned (not the
+# older 0.5.x line) specifically because 0.5.23 caps tokenizers<=0.20.3,
+# which conflicts with the tokenizers version sentence-transformers/
+# transformers pull in below -- verified with `pip check` while building
+# this. If you bump either package, re-run `pip check`.
+sentence-transformers==3.3.1
+chromadb==1.5.9
+
+# Conversational query LLM: Groq primary (fastest for interactive chat),
+# OpenAI/Anthropic as automatic fallback if GROQ_API_KEY isn't set or the
+# call fails. Only one key is required -- set whichever provider you have.
+groq==0.13.0
+openai>=1.0.0
+anthropic>=0.7.0
