@@ -13,7 +13,14 @@ _CONTROL_PATTERN = re.compile(r"[\u0000-\u001F]+")
 _MULTI_SPACE = re.compile(r"\s+")
 _CAPITALIZED = re.compile(r"\b[A-Z][a-z]+\b")
 
-_NLTK_RESOURCES = ["punkt"]
+# NLTK 3.9+ split the classic "punkt" sentence tokenizer data into two
+# resources: "punkt" and "punkt_tab" (the tables PunktTokenizer actually
+# loads at runtime). Downloading only "punkt" leaves sent_tokenize()
+# raising LookupError on every call -- silently caught below and replaced
+# with a naive text.split(".") fallback that mis-splits on abbreviations
+# ("Inc.", "Dr.", "e.g.") and can't handle a sentence with no period at
+# all. Both must be present for real sentence tokenization to actually run.
+_NLTK_RESOURCES = ["punkt", "punkt_tab"]
 
 
 def ensure_nltk() -> None:

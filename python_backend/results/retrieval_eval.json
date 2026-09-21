@@ -8,7 +8,7 @@
     "retrieval_quality_by_k": {
       "3": {
         "recall_at_k": 1.0,
-        "precision_at_k": 0.467,
+        "precision_at_k": 0.489,
         "hit_rate_at_k": 1.0,
         "mrr": 0.967,
         "num_questions": 15
@@ -24,12 +24,12 @@
     "refusal_gate": {
       "min_relevance_score_threshold": 0.3,
       "unanswerable_questions": 5,
-      "correctly_refused": 5,
-      "refusal_rate": 1.0,
-      "answerable_top_score_mean": 0.4649,
-      "answerable_top_score_min": 0.2633,
-      "unanswerable_top_score_mean": 0.194,
-      "unanswerable_top_score_max": 0.2796
+      "correctly_refused": 4,
+      "refusal_rate": 0.8,
+      "answerable_top_score_mean": 0.4826,
+      "answerable_top_score_min": 0.1901,
+      "unanswerable_top_score_mean": 0.2267,
+      "unanswerable_top_score_max": 0.3022
     },
     "per_question_detail_at_k0": [
       {
@@ -44,7 +44,7 @@
           "eval-sprint-planning-w1",
           "eval-architecture-review"
         ],
-        "top_score": 0.483,
+        "top_score": 0.4739,
         "hit": true
       },
       {
@@ -59,7 +59,7 @@
           "eval-sprint-planning-w2",
           "eval-architecture-review"
         ],
-        "top_score": 0.2633,
+        "top_score": 0.1901,
         "hit": true
       },
       {
@@ -71,9 +71,9 @@
         "retrieved_meetings": [
           "eval-incident-postmortem",
           "eval-incident-postmortem",
-          "eval-sprint-planning-w1"
+          "eval-architecture-review"
         ],
-        "top_score": 0.568,
+        "top_score": 0.581,
         "hit": true
       },
       {
@@ -85,9 +85,9 @@
         "retrieved_meetings": [
           "eval-incident-postmortem",
           "eval-incident-postmortem",
-          "eval-architecture-review"
+          "eval-sprint-planning-w2"
         ],
-        "top_score": 0.3789,
+        "top_score": 0.448,
         "hit": true
       },
       {
@@ -101,7 +101,7 @@
           "eval-sprint-planning-w2",
           "eval-hiring-sync"
         ],
-        "top_score": 0.5583,
+        "top_score": 0.5606,
         "hit": true
       },
       {
@@ -115,7 +115,7 @@
           "eval-hiring-sync",
           "eval-architecture-review"
         ],
-        "top_score": 0.3576,
+        "top_score": 0.3222,
         "hit": true
       },
       {
@@ -129,7 +129,7 @@
           "eval-incident-postmortem",
           "eval-onboarding-standup"
         ],
-        "top_score": 0.4754,
+        "top_score": 0.477,
         "hit": true
       },
       {
@@ -143,7 +143,7 @@
           "eval-architecture-review",
           "eval-budget-review"
         ],
-        "top_score": 0.3866,
+        "top_score": 0.3926,
         "hit": true
       },
       {
@@ -157,7 +157,7 @@
           "eval-architecture-review",
           "eval-budget-review"
         ],
-        "top_score": 0.5835,
+        "top_score": 0.7045,
         "hit": true
       },
       {
@@ -168,10 +168,10 @@
         ],
         "retrieved_meetings": [
           "eval-customer-escalation",
-          "eval-hiring-sync",
-          "eval-budget-review"
+          "eval-architecture-review",
+          "eval-hiring-sync"
         ],
-        "top_score": 0.6065,
+        "top_score": 0.663,
         "hit": true
       },
       {
@@ -183,9 +183,9 @@
         "retrieved_meetings": [
           "eval-architecture-review",
           "eval-sprint-planning-w2",
-          "eval-incident-postmortem"
+          "eval-architecture-review"
         ],
-        "top_score": 0.4131,
+        "top_score": 0.4275,
         "hit": true
       },
       {
@@ -199,7 +199,7 @@
           "eval-sprint-planning-w2",
           "eval-budget-review"
         ],
-        "top_score": 0.5709,
+        "top_score": 0.5845,
         "hit": true
       },
       {
@@ -214,7 +214,7 @@
           "eval-hiring-sync",
           "eval-customer-escalation"
         ],
-        "top_score": 0.32,
+        "top_score": 0.3622,
         "hit": true
       },
       {
@@ -228,7 +228,7 @@
           "eval-hiring-sync",
           "eval-architecture-review"
         ],
-        "top_score": 0.5616,
+        "top_score": 0.6199,
         "hit": true
       },
       {
@@ -243,7 +243,7 @@
           "eval-sprint-planning-w1",
           "eval-sprint-planning-w2"
         ],
-        "top_score": 0.4464,
+        "top_score": 0.4327,
         "hit": true
       }
     ]
@@ -253,14 +253,14 @@
     "retrieval_quality_by_k": {
       "3": {
         "recall_at_k": 1.0,
-        "precision_at_k": 0.467,
+        "precision_at_k": 0.444,
         "hit_rate_at_k": 1.0,
         "mrr": 0.922,
         "num_questions": 15
       },
       "5": {
         "recall_at_k": 1.0,
-        "precision_at_k": 0.347,
+        "precision_at_k": 0.32,
         "hit_rate_at_k": 1.0,
         "mrr": 0.922,
         "num_questions": 15
@@ -271,10 +271,10 @@
       "unanswerable_questions": 5,
       "correctly_refused": 4,
       "refusal_rate": 0.8,
-      "answerable_top_score_mean": 0.4884,
-      "answerable_top_score_min": 0.3403,
-      "unanswerable_top_score_mean": 0.2499,
-      "unanswerable_top_score_max": 0.3415
+      "answerable_top_score_mean": 0.5019,
+      "answerable_top_score_min": 0.3222,
+      "unanswerable_top_score_mean": 0.2532,
+      "unanswerable_top_score_max": 0.3207
     },
     "per_question_detail_at_k0": [
       {
@@ -289,7 +289,7 @@
           "eval-sprint-planning-w2",
           "eval-architecture-review"
         ],
-        "top_score": 0.6539,
+        "top_score": 0.5351,
         "hit": true
       },
       {
@@ -302,9 +302,9 @@
         "retrieved_meetings": [
           "eval-architecture-review",
           "eval-sprint-planning-w2",
-          "eval-sprint-planning-w1"
+          "eval-budget-review"
         ],
-        "top_score": 0.4247,
+        "top_score": 0.4171,
         "hit": true
       },
       {
@@ -316,9 +316,9 @@
         "retrieved_meetings": [
           "eval-incident-postmortem",
           "eval-incident-postmortem",
-          "eval-sprint-planning-w1"
+          "eval-architecture-review"
         ],
-        "top_score": 0.568,
+        "top_score": 0.581,
         "hit": true
       },
       {
@@ -329,10 +329,10 @@
         ],
         "retrieved_meetings": [
           "eval-incident-postmortem",
-          "eval-sprint-planning-w1",
+          "eval-incident-postmortem",
           "eval-architecture-review"
         ],
-        "top_score": 0.3789,
+        "top_score": 0.448,
         "hit": true
       },
       {
@@ -343,10 +343,10 @@
         ],
         "retrieved_meetings": [
           "eval-budget-review",
-          "eval-architecture-review",
-          "eval-sprint-planning-w1"
+          "eval-sprint-planning-w1",
+          "eval-architecture-review"
         ],
-        "top_score": 0.5583,
+        "top_score": 0.5606,
         "hit": true
       },
       {
@@ -357,10 +357,10 @@
         ],
         "retrieved_meetings": [
           "eval-budget-review",
-          "eval-hiring-sync",
-          "eval-customer-escalation"
+          "eval-customer-escalation",
+          "eval-hiring-sync"
         ],
-        "top_score": 0.3576,
+        "top_score": 0.3222,
         "hit": true
       },
       {
@@ -374,7 +374,7 @@
           "eval-onboarding-standup",
           "eval-sprint-planning-w2"
         ],
-        "top_score": 0.4754,
+        "top_score": 0.477,
         "hit": true
       },
       {
@@ -388,7 +388,7 @@
           "eval-architecture-review",
           "eval-budget-review"
         ],
-        "top_score": 0.3866,
+        "top_score": 0.3926,
         "hit": true
       },
       {
@@ -399,10 +399,10 @@
         ],
         "retrieved_meetings": [
           "eval-customer-escalation",
-          "eval-budget-review",
-          "eval-hiring-sync"
+          "eval-architecture-review",
+          "eval-budget-review"
         ],
-        "top_score": 0.5835,
+        "top_score": 0.7045,
         "hit": true
       },
       {
@@ -416,7 +416,7 @@
           "eval-hiring-sync",
           "eval-budget-review"
         ],
-        "top_score": 0.6065,
+        "top_score": 0.663,
         "hit": true
       },
       {
@@ -427,10 +427,10 @@
         ],
         "retrieved_meetings": [
           "eval-architecture-review",
-          "eval-sprint-planning-w2",
-          "eval-architecture-review"
+          "eval-architecture-review",
+          "eval-sprint-planning-w2"
         ],
-        "top_score": 0.4131,
+        "top_score": 0.4275,
         "hit": true
       },
       {
@@ -441,10 +441,10 @@
         ],
         "retrieved_meetings": [
           "eval-architecture-review",
-          "eval-architecture-review",
-          "eval-incident-postmortem"
+          "eval-incident-postmortem",
+          "eval-sprint-planning-w2"
         ],
-        "top_score": 0.5709,
+        "top_score": 0.5845,
         "hit": true
       },
       {
@@ -455,11 +455,11 @@
           "eval-onboarding-standup"
         ],
         "retrieved_meetings": [
-          "eval-hiring-sync",
           "eval-onboarding-standup",
+          "eval-hiring-sync",
           "eval-sprint-planning-w2"
         ],
-        "top_score": 0.3403,
+        "top_score": 0.3622,
         "hit": true
       },
       {
@@ -471,9 +471,9 @@
         "retrieved_meetings": [
           "eval-onboarding-standup",
           "eval-hiring-sync",
-          "eval-sprint-planning-w2"
+          "eval-sprint-planning-w1"
         ],
-        "top_score": 0.5616,
+        "top_score": 0.6199,
         "hit": true
       },
       {
@@ -486,12 +486,12 @@
         "retrieved_meetings": [
           "eval-hiring-sync",
           "eval-architecture-review",
-          "eval-sprint-planning-w1"
+          "eval-sprint-planning-w2"
         ],
-        "top_score": 0.4464,
+        "top_score": 0.4327,
         "hit": true
       }
     ]
   },
-  "benchmark_timestamp": "2026-09-21T08:37:52.708782Z"
+  "benchmark_timestamp": "2026-09-21T08:53:20.847786Z"
 }

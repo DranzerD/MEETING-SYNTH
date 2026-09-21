@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import math
 import os
+import random
 import tempfile
 
 # Must run before ANY aura_core submodule is imported anywhere in the test
@@ -35,11 +36,25 @@ from aura_core.embeddings import EMBEDDING_DIM  # noqa: E402
 
 def _fake_vector(text: str) -> list[float]:
   """A deterministic, L2-normalized pseudo-embedding: same text always
-  maps to the same vector, different text (almost always) maps to a
-  different one, with no real semantic meaning -- good enough for testing
-  storage/filtering/ranking plumbing without a model."""
-  seed = hashlib.sha256(text.encode("utf-8")).digest()
-  raw = [(seed[i % len(seed)] / 255.0) - 0.5 for i in range(EMBEDDING_DIM)]
+  maps to the same vector, different text maps to a (pseudo-)independent
+  random one, with no real semantic meaning -- good enough for testing
+  storage/filtering/ranking plumbing without a model.
+
+  Uses the text's hash only to *seed* a PRNG that then draws all
+  EMBEDDING_DIM (384) components -- not, as an earlier version of this
+  fixture did, by tiling a 32-byte SHA-256 digest to fill 384 dimensions.
+  Tiling repeats the same 32 values 12 times, which collapses the
+  effective dimensionality back down to 32 and inflates the variance of
+  cosine similarity between two "random" fake vectors by roughly
+  sqrt(384/32) ~= 3.5x (std ~= 1/sqrt(32) instead of 1/sqrt(384)) -- large
+  enough that two unrelated texts would occasionally, by pure chance,
+  score above query_engine's relevance threshold and make
+  threshold-dependent tests flaky. A properly high-dimensional random
+  vector keeps that chance astronomically small instead.
+  """
+  seed = int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:8], "big")
+  rng = random.Random(seed)
+  raw = [rng.gauss(0.0, 1.0) for _ in range(EMBEDDING_DIM)]
   norm = math.sqrt(sum(v * v for v in raw)) or 1.0
   return [v / norm for v in raw]
 

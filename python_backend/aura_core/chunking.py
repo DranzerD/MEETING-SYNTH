@@ -52,48 +52,43 @@ class TranscriptChunk:
 
 def _split_into_sentences_with_speakers(transcript: str) -> list[TranscriptSentence]:
   """Line-aware sentence split that keeps "Speaker: ..." attribution per
-  sentence when present, and falls back to plain sentence splitting over
-  the whole transcript when it isn't."""
-  cleaned = clean_text(transcript)
+  sentence when present, and falls back to plain sentence splitting when
+  it isn't.
+
+  Splits the ORIGINAL transcript's lines first, then cleans each line
+  individually -- not the other way around. `clean_text` collapses all
+  whitespace runs (including newlines) into single spaces, so cleaning
+  the whole transcript before splitting into lines would silently merge
+  every "Speaker: ..." line into one before this function ever saw more
+  than one line, and every sentence after the first speaker's would be
+  mis-attributed to that first speaker. This previously meant speaker
+  attribution only ever worked by accident, on transcripts with no
+  newlines at all.
+
+  Character offsets are computed directly from the sentence text and a
+  running cursor (rather than re-locating each sentence with `.find` in a
+  separately-built string), since building the offsets while assembling
+  the sentence list is both simpler and immune to a short, repeated
+  sentence being found at the wrong occurrence.
+  """
   sentences: list[TranscriptSentence] = []
   cursor = 0
 
-  for raw_line in cleaned.splitlines():
-    line = raw_line.strip()
+  for raw_line in transcript.splitlines():
+    line = clean_text(raw_line)
     if not line:
-      cursor += len(raw_line) + 1
       continue
 
     speaker_match = _SPEAKER_LINE.match(line)
     speaker = speaker_match.group(1).strip() if speaker_match else None
     body = speaker_match.group(2) if speaker_match else line
 
-    search_from = cursor
-    line_pos = cleaned.find(body, search_from)
-    if line_pos == -1:
-      line_pos = search_from
-
     for sentence in sentence_split(body):
-      start = cleaned.find(sentence, line_pos)
-      if start == -1:
-        start = line_pos
+      start = cursor
       end = start + len(sentence)
       sentences.append(TranscriptSentence(
           text=sentence, speaker=speaker, char_start=start, char_end=end))
-      line_pos = end
-
-    cursor = line_pos
-
-  if not sentences:
-    # Whole-document fallback (e.g. one giant line with no newlines).
-    pos = 0
-    for sentence in sentence_split(cleaned):
-      start = cleaned.find(sentence, pos)
-      if start == -1:
-        start = pos
-      end = start + len(sentence)
-      sentences.append(TranscriptSentence(text=sentence, speaker=None, char_start=start, char_end=end))
-      pos = end
+      cursor = end + 1  # +1 for the space this sentence will be joined with
 
   return sentences
 

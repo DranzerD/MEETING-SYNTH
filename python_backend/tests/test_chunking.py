@@ -1,4 +1,10 @@
+import re
+
 from aura_core.chunking import chunk_transcript
+
+
+def _sentences(text: str) -> set[str]:
+  return {s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()}
 
 
 def test_empty_transcript_returns_no_chunks():
@@ -28,11 +34,11 @@ def test_long_transcript_produces_multiple_overlapping_chunks():
     assert chunk.word_count > 0
     assert chunk.chunk_id == f"m2::chunk-{i}"
 
-  # Consecutive chunks should overlap: the tail of one chunk's sentences
-  # should reappear at the head of the next, so a fact near a boundary is
-  # never split across chunks with no whole copy anywhere.
-  first_chunk_tail = chunks[0].text.split(". ")[-2:]
-  assert any(fragment.strip(". ") in chunks[1].text for fragment in first_chunk_tail if fragment.strip())
+  # Consecutive chunks should overlap: some of chunk 0's sentences should
+  # reappear whole in chunk 1, so a fact near a boundary is never split
+  # across chunks with no whole copy anywhere.
+  overlap = _sentences(chunks[0].text) & _sentences(chunks[1].text)
+  assert overlap, f"expected shared sentences between chunk 0 and 1, got none.\nchunk0={chunks[0].text!r}\nchunk1={chunks[1].text!r}"
 
 
 def test_single_very_long_sentence_is_kept_whole_not_truncated():

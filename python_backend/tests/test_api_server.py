@@ -22,14 +22,22 @@ def client():
 
 
 @pytest.fixture(autouse=True)
-def _fake_embedder_for_api_tests(fake_embeddings):
+def _fake_embedder_for_api_tests(fake_embeddings, monkeypatch):
   """Every test in this file gets the deterministic fake embedder wired in
   (api_server's singletons were already constructed at import time, but
   fake_embeddings patches the shared aura_core.embeddings functions those
   singletons call into, not a per-instance reference). Storage itself is
   isolated at the whole-session level by AURA_CHROMA_DIR/AURA_CACHE_DIR in
   conftest.py, and every test below uses a distinct meeting_id, so tests
-  in this file don't need per-test collection resets to stay correct."""
+  in this file don't need per-test collection resets to stay correct.
+
+  Also skips the real cross-encoder reranker: it's a real (slow-ish to
+  load) model and its actual reranking behavior is already covered by
+  test_retrieval.py's dedicated tests. Returning None here exercises the
+  documented "reranker unavailable -> fall back to ANN order" path
+  instead of paying a real model load in every API test."""
+  import aura_core.reranking as reranking_module
+  monkeypatch.setattr(reranking_module, "rerank_scores", lambda query, documents: None)
   yield
 
 
@@ -109,10 +117,17 @@ def test_query_rejects_empty_question(client):
   assert response.status_code == 400
 
 
-def test_query_with_no_llm_provider_configured_is_503_not_500(client):
+def test_query_with_no_llm_provider_configured_is_503_not_500(client, monkeypatch):
   # conftest.py's _no_llm_env fixture already clears GROQ/OPENAI/ANTHROPIC
   # API keys for every test, so with content indexed but no provider
-  # available, this should fail cleanly, not with a raw 500.
+  # available, this should fail cleanly, not with a raw 500. Force the
+  # relevance gate open (see test_query_meeting_scoped_vs_cross_meeting's
+  # comment) so the request actually reaches the LLM call this test cares
+  # about, instead of short-circuiting into the (also valid, but
+  # different) no-evidence path on the fake embedder's low random score.
+  import aura_core.query_engine as qe_module
+  monkeypatch.setattr(qe_module, "MIN_RELEVANCE_SCORE", -1.0)
+
   client.post("/index", json={"meeting_id": "test-meeting-5", "transcript": "Dana owns the release notes."})
   response = client.post("/query", json={"question": "Who owns the release notes?"})
   assert response.status_code == 503
