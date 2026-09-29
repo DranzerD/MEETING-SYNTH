@@ -231,7 +231,7 @@ Respond with JSON:
                     system: str | None = None, api_key: str | None = None) -> str:
         """Call Groq's OpenAI-compatible chat API (requires groq package).
 
-        Groq runs open models (Llama 3.1 here) on its own LPU inference
+        Groq runs open models on its own LPU inference
         hardware, which is why it's the primary provider for the
         conversational /query endpoint: interactive chat latency matters
         more there than for the offline extraction fallback above, and
@@ -249,7 +249,7 @@ Respond with JSON:
         messages.append({"role": "user", "content": prompt})
 
         response = client.chat.completions.create(
-            model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+            model=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
             messages=messages,
             max_tokens=max_tokens,
             temperature=0.2,
