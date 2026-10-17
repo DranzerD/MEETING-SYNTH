@@ -1,4 +1,4 @@
-import { cleanText, splitSentences, countWords } from "./preprocessing";
+import { cleanText, splitTranscriptSentences, countWords } from "./preprocessing";
 import { extractTasks } from "./taskExtraction";
 import { extractDecisions } from "./decisionExtraction";
 import { analyzeSentiment } from "./sentiment";
@@ -8,7 +8,7 @@ import { AuraAnalysis } from "./types";
 
 export function analyzeTranscript(transcript: string): AuraAnalysis {
   const cleanedTranscript = cleanText(transcript || "");
-  const sentences = splitSentences(cleanedTranscript);
+  const sentences = splitTranscriptSentences(transcript || "");
   const tasks = extractTasks(sentences);
   const decisions = extractDecisions(sentences);
   const summary = buildSummary(sentences);

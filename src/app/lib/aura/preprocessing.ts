@@ -57,9 +57,57 @@ const COMMON_WORDS = new Set([
   "The", "This", "That", "These", "Those", "We", "They", "It", "He", "She",
   "You", "Our", "Their", "His", "Her", "Someone", "Everyone", "Everybody",
   "Anyone", "Nobody", "All", "Team",
+  // Days and months are capitalized too but are dates, not people -- "I'll
+  // have it ready by Wednesday" must not make "Wednesday" the assignee.
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+  "January", "February", "March", "April", "May", "June", "July", "August",
+  "September", "October", "November", "December",
+  // Capitalized only because they open a sentence ("Can you bump the pool
+  // size?"), never names.
+  "Can", "Could", "Would", "Should", "Will", "Shall", "May", "Might", "Must",
+  "Please", "Let", "Lets", "Maybe", "Also", "Then", "So", "But", "And", "Or",
+  "Yes", "No", "Okay", "Ok", "Thanks", "Thank", "Agreed", "Sure", "Good",
+  "Great", "Sounds", "What", "When", "Where", "Why", "How", "Who", "Which",
+  "If", "After", "Before", "Once", "Until", "While", "Next", "Last", "Do",
+  "Does", "Did", "Is", "Are", "Was", "Were", "Have", "Has", "Not",
 ]);
 
 export function extractCapitalizedTokens(sentence: string): string[] {
   const matches = sentence.match(/\b[A-Z][a-z]+\b/g) || [];
   return matches.filter((word) => !COMMON_WORDS.has(word));
+}
+
+const SPEAKER_LINE = /^\s*([A-Z][A-Za-z0-9 .'-]{0,40}):\s+/;
+
+/** Splits a raw transcript into sentences while respecting its line
+ * structure. `cleanText` collapses newlines, so running it before sentence
+ * splitting turned "Name: ..." lines with no trailing period into one giant
+ * sentence. A line break is a sentence boundary when the previous line ended
+ * a sentence, the next line starts a new speaker turn, or there is a blank
+ * line; otherwise it's treated as a hard wrap and the lines are joined. */
+export function splitTranscriptSentences(raw: string): string[] {
+  const lines = (raw || "").split(/\r?\n/);
+  const segments: string[] = [];
+  let current = "";
+  let afterBlank = false;
+
+  for (const line of lines) {
+    const text = line.trim();
+    if (!text) {
+      afterBlank = true;
+      continue;
+    }
+    const startsTurn = SPEAKER_LINE.test(text);
+    const prevEndedSentence = /[.!?]["')\]]*$/.test(current);
+    if (current && (afterBlank || startsTurn || prevEndedSentence)) {
+      segments.push(current);
+      current = text;
+    } else {
+      current = current ? `${current} ${text}` : text;
+    }
+    afterBlank = false;
+  }
+  if (current) segments.push(current);
+
+  return segments.flatMap((segment) => splitSentences(cleanText(segment)));
 }
