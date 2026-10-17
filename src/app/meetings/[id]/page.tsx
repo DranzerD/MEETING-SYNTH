@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState, Suspense } from "react
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import type { Meeting, IndexStatus } from "@/app/lib/types";
+import { formatDeadline, isOverdue } from "@/app/lib/deadlines";
 
 function MeetingDetailInner() {
   const params = useParams();
@@ -358,10 +359,8 @@ function MeetingDetailInner() {
                 </div>
               ) : (
                 filteredTasks.map((task) => {
-                  const isOverdue =
-                    task.deadline &&
-                    new Date(task.deadline) < new Date() &&
-                    !task.completed;
+                  const meetingDate = new Date(meeting.timestamp);
+                  const taskOverdue = isOverdue(task.deadline, meetingDate, !!task.completed);
 
                   return (
                     <div
@@ -369,7 +368,7 @@ function MeetingDetailInner() {
                       className={`p-4 rounded-xl border ${
                         task.completed
                           ? "bg-white/5 border-white/5"
-                          : isOverdue
+                          : taskOverdue
                           ? "bg-red-500/10 border-red-500/30"
                           : task.priority === "high"
                           ? "bg-orange-500/10 border-orange-500/30"
@@ -403,9 +402,9 @@ function MeetingDetailInner() {
                           <div className="flex gap-3 mt-2 text-sm text-slate-400">
                             <span>👤 {task.assignee}</span>
                             {task.deadline && (
-                              <span className={isOverdue ? "text-red-400" : ""}>
+                              <span className={taskOverdue ? "text-red-400" : ""}>
                                 📅{" "}
-                                {new Date(task.deadline).toLocaleDateString()}
+                                {formatDeadline(task.deadline, meetingDate)}
                               </span>
                             )}
                             {task.priority && (

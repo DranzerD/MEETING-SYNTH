@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Meeting, IndexStatusValue, Person, PersonTask } from "@/app/lib/types";
+import { deadlineTime, formatDeadline, isOverdue } from "@/app/lib/deadlines";
 
 export default function DashboardPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -64,9 +65,8 @@ export default function DashboardPage() {
     const tasks = meeting.tasks || [];
     const open = tasks.filter((t) => !t.completed).length;
     const completed = tasks.filter((t) => t.completed).length;
-    const overdue = tasks.filter(
-      (t) => !t.completed && t.deadline && new Date(t.deadline) < new Date()
-    ).length;
+    const reference = new Date(meeting.timestamp);
+    const overdue = tasks.filter((t) => isOverdue(t.deadline, reference, !!t.completed)).length;
     return { open, completed, overdue };
   };
 
@@ -429,19 +429,17 @@ function PeopleView({ searchQuery }: { searchQuery: string }) {
               .slice()
               .sort((a: PersonTask, b: PersonTask) => {
                 if (a.completed !== b.completed) return a.completed ? 1 : -1;
-                if (a.deadline && b.deadline) {
-                  return (
-                    new Date(a.deadline).getTime() -
-                    new Date(b.deadline).getTime()
-                  );
-                }
+                // Unparseable/missing deadlines sort after dated ones.
+                const at = deadlineTime(a.deadline, new Date(a.meetingDate));
+                const bt = deadlineTime(b.deadline, new Date(b.meetingDate));
+                if (at !== null && bt !== null) return at - bt;
+                if (at !== null) return -1;
+                if (bt !== null) return 1;
                 return 0;
               })
               .map((task: PersonTask, idx: number) => {
-                const isOverdue =
-                  task.deadline &&
-                  new Date(task.deadline) < new Date() &&
-                  !task.completed;
+                const taskReference = new Date(task.meetingDate);
+                const taskOverdue = isOverdue(task.deadline, taskReference, !!task.completed);
 
                 return (
                   <div
@@ -449,7 +447,7 @@ function PeopleView({ searchQuery }: { searchQuery: string }) {
                     className={`p-4 rounded-xl border ${
                       task.completed
                         ? "bg-white/5 border-white/5 opacity-60"
-                        : isOverdue
+                        : taskOverdue
                         ? "bg-red-500/10 border-red-500/30"
                         : "bg-white/10 border-white/10"
                     }`}
@@ -466,9 +464,9 @@ function PeopleView({ searchQuery }: { searchQuery: string }) {
                         <div className="flex gap-4 mt-2 text-sm text-slate-400">
                           <span>📅 {task.meetingTitle}</span>
                           {task.deadline && (
-                            <span className={isOverdue ? "text-red-400" : ""}>
+                            <span className={taskOverdue ? "text-red-400" : ""}>
                               Due:{" "}
-                              {new Date(task.deadline).toLocaleDateString()}
+                              {formatDeadline(task.deadline, taskReference)}
                             </span>
                           )}
                           {task.priority && (
