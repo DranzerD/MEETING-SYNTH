@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
+import { badRequest, isConnectionFailure, pythonUnavailable, readJsonBody } from "@/app/lib/http";
 
 const PY_API_URL = process.env.AURA_PY_API_URL;
 
@@ -26,11 +27,30 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
-    const question = typeof body?.question === "string" ? body.question.trim() : "";
-    const meetingIds = Array.isArray(body?.meetingIds) ? body.meetingIds : undefined;
-    const topK = typeof body?.topK === "number" ? body.topK : undefined;
-    const history = Array.isArray(body?.history) ? body.history : undefined;
+    const body = (await readJsonBody(request)) as Record<string, unknown> | undefined | null;
+    if (body === undefined || body === null || typeof body !== "object") {
+      return badRequest("Request body must be a JSON object.");
+    }
+    const question = typeof body.question === "string" ? body.question.trim() : "";
+    // Only well-formed values are forwarded; anything else is dropped rather
+    // than reaching the Python service's validator and coming back as a 422.
+    type Turn = { role?: unknown; content?: unknown };
+    const meetingIds = Array.isArray(body.meetingIds)
+      ? body.meetingIds.filter((id: unknown): id is string => typeof id === "string").slice(0, 100)
+      : undefined;
+    const topK =
+      typeof body.topK === "number" && Number.isInteger(body.topK)
+        ? Math.min(20, Math.max(1, body.topK))
+        : undefined;
+    const history = Array.isArray(body.history)
+      ? body.history
+          .filter(
+            (turn: Turn): turn is { role: "user" | "assistant"; content: string } =>
+              !!turn && typeof turn.content === "string" && (turn.role === "user" || turn.role === "assistant")
+          )
+          .slice(-6)
+          .map((turn) => ({ role: turn.role, content: turn.content.slice(0, 4000) }))
+      : undefined;
 
     if (!question) {
       return NextResponse.json(
@@ -75,6 +95,7 @@ export async function POST(request: Request) {
         { status: 408 }
       );
     }
+    if (isConnectionFailure(error)) return pythonUnavailable();
     console.error("/api/query error", error);
     const message = error instanceof Error ? error.message : "Unexpected error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

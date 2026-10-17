@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
 import { isSafeMeetingId } from "@/app/lib/validation";
+import { badRequest, readJsonBody, validateTasks } from "@/app/lib/http";
 
 const DATA_DIR = path.join(process.cwd(), "data", "meetings");
 
@@ -64,11 +65,15 @@ export async function PATCH(
     const content = fs.readFileSync(filepath, "utf-8");
     const meeting = JSON.parse(content);
 
-    const body = await request.json();
-    const { tasks } = body;
+    const body = (await readJsonBody(request)) as { tasks?: unknown } | undefined;
+    if (body === undefined || body === null || typeof body !== "object" || Array.isArray(body)) {
+      return badRequest("Request body must be a JSON object.");
+    }
 
-    if (tasks) {
-      meeting.tasks = tasks;
+    if (body.tasks !== undefined) {
+      const problem = validateTasks(body.tasks);
+      if (problem) return badRequest(problem);
+      meeting.tasks = body.tasks;
     }
 
     fs.writeFileSync(filepath, JSON.stringify(meeting, null, 2));

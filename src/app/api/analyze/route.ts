@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { analyzeTranscript } from "@/app/lib/aura/analyzer";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
+import { badRequest, readJsonBody } from "@/app/lib/http";
 import type { Decision, Sentiment, Stats, Task } from "@/app/lib/types";
 import type { TaskInsight } from "@/app/lib/aura/types";
 import fs from "fs";
@@ -55,7 +56,10 @@ export async function POST(request: Request) {
   if (!user) return unauthorized();
 
   try {
-    const body = await request.json();
+    const body = (await readJsonBody(request)) as Record<string, unknown> | undefined | null;
+    if (body === undefined || body === null || typeof body !== "object") {
+      return badRequest("Request body must be a JSON object.");
+    }
     const transcript =
       typeof body?.transcript === "string" ? body.transcript : "";
     const thread = typeof body?.thread === "string" ? body.thread : undefined;
@@ -111,8 +115,12 @@ export async function POST(request: Request) {
     // so the RAG layer had no stable ID to index chunks under.
     ensureDataDir();
     let meeting_id = meetingId || `aura_${Date.now()}`;
+    // ".." and a leading dot are replaced too: GET /api/meetings/[id] rejects
+    // any id containing "..", so such a meeting would be saved but unopenable.
     meeting_id = meeting_id
       .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+      .replace(/\.{2,}/g, "_")
+      .replace(/^\./, "_")
       .substring(0, 100);
 
     let filename = `${meeting_id}.json`;
