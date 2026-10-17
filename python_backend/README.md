@@ -34,7 +34,7 @@ python aura_cli.py query "What did we decide about the budget?" --top-k 5
 
 ```bash
 pip install -r requirements-dev.txt
-pytest tests/ -v                                        # 72 tests
+pytest tests/ -v                                        # 106 tests
 python benchmark.py                                      # ML classifier CV metrics
 python -m rag_eval.run_retrieval_eval --top-k 3 5        # retrieval quality (Recall/Precision/MRR)
 python benchmark_retrieval.py --corpus-size 50 --queries 30   # retrieval latency

@@ -18,8 +18,9 @@ relevance -- see dataset.py's docstring for why):
                  dataset doesn't have)
 
 For the "unanswerable" questions, reports the refusal rate: how often the
-top result's cosine similarity falls below MIN_RELEVANCE_SCORE (the
-threshold query_engine.py uses to refuse to answer) -- this is also how
+top result fails the relevance gate (query_engine.is_relevant: cross-encoder
+score vs MIN_RERANK_SCORE when reranking, else cosine vs MIN_RELEVANCE_SCORE).
+Also reports the false-refusal rate: answerable questions the gate would wrongly refuse -- this is also how
 MIN_RELEVANCE_SCORE was picked in the first place: run this script, look
 at where relevant and irrelevant top-scores separate, pick a threshold in
 the gap.
@@ -46,7 +47,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from aura_core.chunking import chunk_transcript
-from aura_core.config import MIN_RELEVANCE_SCORE
+from aura_core.config import MIN_RELEVANCE_SCORE, MIN_RERANK_SCORE
+from aura_core.query_engine import is_relevant
 from aura_core.embeddings import embed_texts
 from aura_core.retrieval import retrieve
 from aura_core.vectorstore import ChunkVectorStore
@@ -113,23 +115,42 @@ def evaluate(store: ChunkVectorStore, top_k_values: list[int], rerank: bool) -> 
   # default top_k) regardless of which --top-k values were requested.
   relevant_top_scores: list[float] = []
   irrelevant_top_scores: list[float] = []
+  relevant_gate_scores: list[float] = []
+  irrelevant_gate_scores: list[float] = []
   refusals = 0
+  false_refusals = 0
+
+  def gate_score(m):  # the score is_relevant() actually compares
+    return m.rerank_score if m.rerank_score is not None else m.score
+
   for q in answerable:
     result = retrieve(q.question, top_k=5, store=store, rerank=rerank)
     if result.matches:
       relevant_top_scores.append(result.matches[0].score)
+      relevant_gate_scores.append(gate_score(result.matches[0]))
+      if not is_relevant(result.matches[0]):
+        false_refusals += 1
   for q in unanswerable:
     result = retrieve(q.question, top_k=5, store=store, rerank=rerank)
     top_score = result.matches[0].score if result.matches else -1.0
     irrelevant_top_scores.append(top_score)
-    if top_score < MIN_RELEVANCE_SCORE:
+    if result.matches:
+      irrelevant_gate_scores.append(gate_score(result.matches[0]))
+    if not result.matches or not is_relevant(result.matches[0]):
       refusals += 1
 
   return {
       "reranked": rerank,
       "retrieval_quality_by_k": per_k,
       "refusal_gate": {
+          "gate_score_used": "cross_encoder" if rerank else "cosine",
           "min_relevance_score_threshold": MIN_RELEVANCE_SCORE,
+          "min_rerank_score_threshold": MIN_RERANK_SCORE,
+          "answerable_questions": len(answerable),
+          "false_refusals": false_refusals,
+          "false_refusal_rate": round(false_refusals / len(answerable), 3) if answerable else None,
+          "answerable_gate_score_min": round(min(relevant_gate_scores), 4) if relevant_gate_scores else None,
+          "unanswerable_gate_score_max": round(max(irrelevant_gate_scores), 4) if irrelevant_gate_scores else None,
           "unanswerable_questions": len(unanswerable),
           "correctly_refused": refusals,
           "refusal_rate": round(refusals / len(unanswerable), 3) if unanswerable else None,
@@ -172,7 +193,10 @@ def main() -> None:
               f"HitRate@K={metrics['hit_rate_at_k']:.3f}  MRR={metrics['mrr']:.3f}")
       gate = report[key]["refusal_gate"]
       print(f"  Refusal gate: {gate['correctly_refused']}/{gate['unanswerable_questions']} unanswerable "
-            f"questions correctly refused (threshold={gate['min_relevance_score_threshold']})")
+            f"questions correctly refused (gate: {gate['gate_score_used']})")
+      print(f"  False refusals: {gate['false_refusals']}/{gate['answerable_questions']} answerable questions wrongly refused")
+      print(f"  Gate-score separation: answerable min={gate['answerable_gate_score_min']}  "
+            f"vs  unanswerable max={gate['unanswerable_gate_score_max']}")
       print(f"  Top-score separation: answerable mean={gate['answerable_top_score_mean']} "
             f"(min={gate['answerable_top_score_min']})  vs  unanswerable mean={gate['unanswerable_top_score_mean']} "
             f"(max={gate['unanswerable_top_score_max']})")

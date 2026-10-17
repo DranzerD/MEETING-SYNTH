@@ -113,3 +113,26 @@ def test_citation_snippet_is_truncated_for_long_chunks(monkeypatch):
   answer = engine.answer("question")
 
   assert len(answer.citations[0].snippet) <= 241  # 240 chars + ellipsis
+
+
+def test_gate_uses_cross_encoder_score_when_reranked_even_if_cosine_is_low():
+  # Regression: a specific question against a long chunk can have a low
+  # cosine (~0.2) while the cross-encoder rates the chunk as clearly
+  # relevant. The gate used to refuse these on cosine alone.
+  from aura_core.query_engine import is_relevant
+  match = _fake_match(score=0.19)
+  match.rerank_score = 3.4
+  assert is_relevant(match)
+
+
+def test_gate_refuses_when_cross_encoder_says_irrelevant_even_if_cosine_is_high():
+  from aura_core.query_engine import is_relevant
+  match = _fake_match(score=0.35)
+  match.rerank_score = -9.0
+  assert not is_relevant(match)
+
+
+def test_gate_falls_back_to_cosine_when_not_reranked():
+  from aura_core.query_engine import is_relevant
+  assert is_relevant(_fake_match(score=0.5))
+  assert not is_relevant(_fake_match(score=0.1))

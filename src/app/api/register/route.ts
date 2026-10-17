@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/app/lib/mongodb";
 import User from "@/app/models/user";
 import { hashPassword } from "@/app/lib/password";
+import { badRequest, readJsonBody } from "@/app/lib/http";
 import { createSessionToken, setSessionCookie } from "@/app/lib/auth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await readJsonBody(req) as Record<string, unknown> | undefined | null;
+    if (body === undefined || body === null || typeof body !== "object") {
+      return badRequest("Request body must be a JSON object.");
+    }
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const phone = typeof body?.phone === "string" ? body.phone.trim() : "";

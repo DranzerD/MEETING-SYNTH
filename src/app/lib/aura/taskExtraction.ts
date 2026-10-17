@@ -20,10 +20,10 @@ const TASK_KEYWORDS = [
 ];
 
 const HIGH_PRIORITY = /(critical|urgent|asap|immediately|blocker)/i;
-const MEDIUM_PRIORITY = /(important|need to|should|follow up)/i;
+const MEDIUM_PRIORITY = /(important|needs? to|should|follow up)/i;
 
 const DEADLINE_PATTERNS: RegExp[] = [
-  /by\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
+  /by\s+(?:next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
   /by\s+(today|tomorrow|tonight|next week|end of week|eow|eod)/i,
   /by\s+([A-Z][a-z]+\s+\d{1,2})/i,
   /by\s+((?:Q[1-4]|\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2}))/i,
@@ -43,7 +43,20 @@ function detectDeadline(sentence: string): string | undefined {
   return undefined;
 }
 
-function detectAssignee(sentence: string): string {
+// "Dana: I'll own the runbook" -> the speaker is the assignee. In every other
+// case the speaker label is just who is talking ("Dana: Can you bump the pool
+// size?"), so it must not be treated as the assignee.
+const SPEAKER_PREFIX = /^\s*([A-Z][A-Za-z0-9 .'-]{0,40}):\s+(.*)$/;
+const FIRST_PERSON_COMMITMENT = /^(?:i\s+will|i'll|i\s+can|i\s+am going to|i'm going to|let me|i\s+need to|i\s+should)\b/i;
+
+const LEADING_ACK = /^(?:agreed|ok|okay|sure|yes|yeah|sounds good|great|good)\b[,.!]?\s*/i;
+
+function detectAssignee(rawSentence: string): string {
+  const speakerMatch = rawSentence.match(SPEAKER_PREFIX);
+  const speaker = speakerMatch ? speakerMatch[1].trim() : null;
+  const sentence = (speakerMatch ? speakerMatch[2] : rawSentence).replace(LEADING_ACK, ""); // "Agreed, I'll check X" -> "I'll check X"
+  if (speaker && FIRST_PERSON_COMMITMENT.test(sentence)) return speaker;
+
   const capitalized = extractCapitalizedTokens(sentence);
   if (capitalized.length > 0) {
     return capitalized[0];

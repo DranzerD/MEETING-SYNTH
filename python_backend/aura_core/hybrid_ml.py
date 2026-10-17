@@ -37,6 +37,9 @@ _PROVIDER_ENV_VARS = {
 }
 
 
+_JSON_SYSTEM_PROMPT = "You are a precise meeting analysis assistant. Always respond with valid JSON."
+
+
 class LLMFallback:
     """Fallback to LLM API for low-confidence predictions, and -- via
     `chat_complete` -- the generic chat call the RAG query engine uses.
@@ -86,10 +89,9 @@ Sentences:
 Respond with JSON array of tasks. If no tasks, return empty array []."""
 
         try:
-            if self.provider == "openai":
-                result = self._call_openai(prompt, max_tokens=500)
-            else:
-                result = self._call_anthropic(prompt, max_tokens=500)
+            # chat_complete resolves the provider/key correctly (this used to
+            # send a Groq key to the Anthropic client for the default provider).
+            result, _provider = self.chat_complete(prompt, system=_JSON_SYSTEM_PROMPT, max_tokens=500)
             
             tasks = json.loads(result)
             return [
@@ -152,10 +154,7 @@ Respond with JSON:
 }}"""
         
         try:
-            if self.provider == "openai":
-                result = self._call_openai(prompt, max_tokens=150)
-            else:
-                result = self._call_anthropic(prompt, max_tokens=150)
+            result, _provider = self.chat_complete(prompt, system=_JSON_SYSTEM_PROMPT, max_tokens=150)
             
             data = json.loads(result)
             

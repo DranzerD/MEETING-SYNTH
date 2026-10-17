@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
-import type { Task, PersonTask } from "@/app/lib/types";
-
-const DATA_DIR = path.join(process.cwd(), "data", "meetings");
+import type { PersonTask } from "@/app/lib/types";
+import { isOverdue } from "@/app/lib/deadlines";
+import { readAllMeetings } from "@/app/lib/meetingStore";
 
 function normalizeName(name: string): string {
   return name.toLowerCase().trim();
@@ -15,11 +13,6 @@ export async function GET(request: Request) {
   if (!user) return unauthorized();
 
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      return NextResponse.json({ success: true, people: [] });
-    }
-
-    const files = fs.readdirSync(DATA_DIR);
     const peopleMap = new Map<
       string,
       {
@@ -29,34 +22,34 @@ export async function GET(request: Request) {
       }
     >();
 
-    files
-      .filter((f) => f.endsWith(".json"))
-      .forEach((file) => {
-        const content = fs.readFileSync(path.join(DATA_DIR, file), "utf-8");
-        const meeting = JSON.parse(content);
+    for (const meeting of readAllMeetings()) {
+      for (const task of meeting.tasks) {
+        if (typeof task !== "object" || task === null) continue;
+        // "Not specified" is the extractors' placeholder, not a person.
+        const assignee =
+          typeof task.assignee === "string" && task.assignee && task.assignee !== "Not specified"
+            ? task.assignee
+            : "Unassigned";
+        const normalizedName = normalizeName(assignee);
 
-        meeting.tasks?.forEach((task: Task) => {
-          const assignee = task.assignee || "Unassigned";
-          const normalizedName = normalizeName(assignee);
-
-          if (!peopleMap.has(normalizedName)) {
-            peopleMap.set(normalizedName, {
-              name: assignee,
-              tasks: [],
-              meetings: new Set(),
-            });
-          }
-
-          const person = peopleMap.get(normalizedName)!;
-          person.tasks.push({
-            ...task,
-            meetingId: meeting.meeting_id,
-            meetingTitle: meeting.title || "Untitled Meeting",
-            meetingDate: meeting.timestamp,
+        if (!peopleMap.has(normalizedName)) {
+          peopleMap.set(normalizedName, {
+            name: assignee,
+            tasks: [],
+            meetings: new Set(),
           });
-          person.meetings.add(meeting.meeting_id);
+        }
+
+        const person = peopleMap.get(normalizedName)!;
+        person.tasks.push({
+          ...task,
+          meetingId: String(meeting.meeting_id),
+          meetingTitle: meeting.title || "Untitled Meeting",
+          meetingDate: String(meeting.timestamp),
         });
-      });
+        person.meetings.add(String(meeting.meeting_id));
+      }
+    }
 
     const people = Array.from(peopleMap.values()).map((person) => ({
       name: person.name,
@@ -64,8 +57,8 @@ export async function GET(request: Request) {
       meetingCount: person.meetings.size,
       taskCount: person.tasks.length,
       openTasks: person.tasks.filter((t) => !t.completed).length,
-      overdueTasks: person.tasks.filter(
-        (t) => !t.completed && t.deadline && new Date(t.deadline) < new Date()
+      overdueTasks: person.tasks.filter((t) =>
+        isOverdue(t.deadline, new Date(t.meetingDate), !!t.completed)
       ).length,
     }));
 

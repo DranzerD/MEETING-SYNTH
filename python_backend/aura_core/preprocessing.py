@@ -21,6 +21,19 @@ _COMMON_WORDS = {
     "The", "This", "That", "These", "Those", "We", "They", "It", "He", "She",
     "You", "Our", "Their", "His", "Her", "Someone", "Everyone", "Everybody",
     "Anyone", "Nobody", "All", "Team",
+    # Days and months are capitalized too but are dates, not people -- "I'll
+    # have it ready by Wednesday" must not make "Wednesday" the assignee.
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+    "January", "February", "March", "April", "May", "June", "July", "August",
+    "September", "October", "November", "December",
+    # Capitalized only because they open a sentence ("Can you bump the pool
+    # size?"), never names.
+    "Can", "Could", "Would", "Should", "Will", "Shall", "May", "Might", "Must",
+    "Please", "Let", "Lets", "Maybe", "Also", "Then", "So", "But", "And", "Or",
+    "Yes", "No", "Okay", "Ok", "Thanks", "Thank", "Agreed", "Sure", "Good",
+    "Great", "Sounds", "What", "When", "Where", "Why", "How", "Who", "Which",
+    "If", "After", "Before", "Once", "Until", "While", "Next", "Last", "Do",
+    "Does", "Did", "Is", "Are", "Was", "Were", "Have", "Has", "Not",
 }
 
 # NLTK 3.9+ split the classic "punkt" sentence tokenizer data into two
@@ -58,6 +71,39 @@ def sentence_split(text: str) -> List[str]:
   return sentences
 
 
+_SPEAKER_LINE = re.compile(r"^\s*[A-Z][A-Za-z0-9 .'-]{0,40}:\s+")
+_ENDS_SENTENCE = re.compile(r"""[.!?]["')\]]*$""")
+
+
+def split_turns(text: str) -> list[str]:
+  """Splits a raw transcript into segments that each hold whole sentences,
+  respecting line structure.
+
+  `clean_text` collapses newlines, so cleaning the whole transcript before
+  sentence splitting turned "Name: ..." lines with no trailing period into
+  one giant sentence (at most one task was ever found). A line break is a
+  boundary when the previous line ended a sentence, the next line starts a
+  new speaker turn, or there's a blank line; otherwise it's a hard wrap
+  and the lines are joined."""
+  segments: list[str] = []
+  current = ""
+  after_blank = False
+  for raw_line in (text or "").splitlines():
+    line = raw_line.strip()
+    if not line:
+      after_blank = True
+      continue
+    if current and (after_blank or _SPEAKER_LINE.match(line) or _ENDS_SENTENCE.search(current)):
+      segments.append(current)
+      current = line
+    else:
+      current = f"{current} {line}" if current else line
+    after_blank = False
+  if current:
+    segments.append(current)
+  return segments
+
+
 def extract_names(sentence: str) -> list[str]:
   return [
       match.group(0) for match in _CAPITALIZED.finditer(sentence)
@@ -74,7 +120,7 @@ class Document:
   @classmethod
   def from_text(cls, text: str) -> "Document":
     cleaned = clean_text(text)
-    sentences = sentence_split(cleaned)
+    sentences = [s for segment in split_turns(text) for s in sentence_split(clean_text(segment))]
     return cls(raw=text, cleaned=cleaned, sentences=sentences)
 
   def iter_sentences(self) -> Iterable[str]:

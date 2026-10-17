@@ -15,7 +15,7 @@ import time
 from dataclasses import dataclass
 from typing import Sequence
 
-from .config import DEFAULT_TOP_K, MIN_RELEVANCE_SCORE
+from .config import DEFAULT_TOP_K, MIN_RELEVANCE_SCORE, MIN_RERANK_SCORE
 from .hybrid_ml import LLMFallback
 from .retrieval import RetrievalResult, RetrievedChunk, retrieve
 from .vectorstore import ChunkVectorStore
@@ -88,6 +88,15 @@ def _build_prompt(question: str, matches: Sequence[RetrievedChunk], history: Seq
   )
 
 
+def is_relevant(top: RetrievedChunk) -> bool:
+  """Relevance gate. Prefers the cross-encoder score (it reads question and
+  chunk together, so it holds up when the chunk is much longer than the
+  question); falls back to bi-encoder cosine when reranking didn't run."""
+  if top.rerank_score is not None:
+    return top.rerank_score >= MIN_RERANK_SCORE
+  return top.score >= MIN_RELEVANCE_SCORE
+
+
 def _no_evidence_answer(retrieval: RetrievalResult) -> ChatAnswer:
   return ChatAnswer(
       answer=NO_EVIDENCE_ANSWER,
@@ -130,12 +139,12 @@ class RAGChatEngine:
       )
 
     # Hallucination safeguard #1: refuse to answer when even the best match
-    # is a weak one. Chroma always returns its closest top_k vectors
+    # is a weak one (see is_relevant for which score is used). Chroma always returns its closest top_k vectors
     # regardless of how dissimilar they actually are, so "we got results"
     # is not the same as "we got relevant results" -- an irrelevant
     # question (or one about something never discussed) would otherwise
     # still be answered from whatever the top-k happened to be.
-    if retrieval.matches[0].score < MIN_RELEVANCE_SCORE:
+    if not is_relevant(retrieval.matches[0]):
       return _no_evidence_answer(retrieval)
 
     prompt = _build_prompt(question, retrieval.matches, history)

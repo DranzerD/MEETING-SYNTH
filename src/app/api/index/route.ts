@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
+import { badRequest, isConnectionFailure, pythonUnavailable, readJsonBody } from "@/app/lib/http";
 
 const PY_API_URL = process.env.AURA_PY_API_URL;
 
@@ -22,9 +23,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
-    const meetingId = typeof body?.meetingId === "string" ? body.meetingId : "";
-    const transcript = typeof body?.transcript === "string" ? body.transcript : "";
+    const body = (await readJsonBody(request)) as Record<string, unknown> | undefined | null;
+    if (body === undefined || body === null || typeof body !== "object") {
+      return badRequest("Request body must be a JSON object.");
+    }
+    const meetingId = typeof body.meetingId === "string" ? body.meetingId : "";
+    const transcript = typeof body.transcript === "string" ? body.transcript : "";
 
     if (!meetingId || !transcript.trim()) {
       return NextResponse.json(
@@ -50,6 +54,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, ...payload });
   } catch (error: unknown) {
+    if (isConnectionFailure(error)) return pythonUnavailable();
     console.error("/api/index error", error);
     const message = error instanceof Error ? error.message : "Unexpected error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
@@ -90,6 +95,7 @@ export async function GET(request: Request) {
       ? NextResponse.json({ success: true, ...payload })
       : NextResponse.json({ success: true, statuses: payload });
   } catch (error: unknown) {
+    if (isConnectionFailure(error)) return pythonUnavailable();
     console.error("/api/index status error", error);
     const message = error instanceof Error ? error.message : "Unexpected error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });

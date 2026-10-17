@@ -56,8 +56,8 @@ Open `http://localhost:3000`, register, analyze a sample transcript, then ask ab
 ## Tests & evaluation
 
 ```bash
-cd python_backend && pip install -r requirements-dev.txt && pytest tests/ -v   # 72 tests
-npm test                                                                       # 56 tests
+cd python_backend && pip install -r requirements-dev.txt && pytest tests/ -v   # 106 tests
+npm test                                                                       # 79 tests
 
 python -m rag_eval.run_retrieval_eval --top-k 3 5     # retrieval quality
 python benchmark.py                                     # ML classifier CV metrics
@@ -73,10 +73,11 @@ the full breakdown and methodology.
 | | Result |
 | --- | --- |
 | Task classifier (5-fold CV) | 73.2% ± 6.5% F1 |
-| Decision classifier (4-fold CV) | 35.7% ± 8.0% F1 |
+| Decision *type* classifier (4-fold CV) | 35.7% ± 8.0% F1 (detection is rule-based; see ARCHITECTURE) |
+| Relevance gate (with reranking) | 5/5 unanswerable refused, 0/15 answerable wrongly refused |
 | Retrieval Recall@5 / MRR (with reranking) | 1.00 / 0.967 |
 | Retrieval latency, with / without reranking | 140.6ms / 12.3ms mean |
-| Automated tests | 128 (72 pytest + 56 Vitest), all passing |
+| Automated tests | 185 (106 pytest + 79 Vitest), all passing |
 
 ## Known limitations
 

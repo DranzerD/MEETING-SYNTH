@@ -36,3 +36,26 @@ describe("extractTasks", () => {
     expect(tasks[0]?.confidence).toBeLessThanOrEqual(1);
   });
 });
+
+describe("assignee detection with speaker-labelled transcripts", () => {
+  it("assigns a first-person commitment to the speaker", () => {
+    const [task] = extractTasks(["Leo: I will stabilize the flaky test suite by Wednesday."]);
+    expect(task.assignee).toBe("Leo");
+    expect(task.deadline).toBe("by Wednesday");
+  });
+
+  it("does not make the speaker the assignee of a request addressed to someone else", () => {
+    const [task] = extractTasks(["Dana: Can you bump the pool size, we need to fix staging."]);
+    expect(task.assignee).not.toBe("Dana");
+  });
+
+  it("sees through a leading acknowledgement", () => {
+    const [task] = extractTasks(["Dana: Agreed, I will check the alerting setup by October 30."]);
+    expect(task.assignee).toBe("Dana");
+  });
+
+  it("never reports a weekday or month as the assignee", () => {
+    const [task] = extractTasks(["We should finalize the deck before October 28."]);
+    expect(task.assignee).toBe("Not specified");
+  });
+});

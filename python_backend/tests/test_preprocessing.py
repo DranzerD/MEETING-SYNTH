@@ -26,7 +26,7 @@ def test_extract_names_filters_sentence_initial_pronouns_and_articles():
   participant detection (decisions.py) would misreport 'We' or 'The' as
   the responsible person instead of falling through to 'Team' or
   'Not specified'."""
-  assert extract_names("We should ship Friday with Dana's help") == ["Friday", "Dana"]
+  assert extract_names("We should ship Friday with Dana's help") == ["Dana"]  # "Friday" is a date, not a person
   assert extract_names("The team will review this") == []
 
 

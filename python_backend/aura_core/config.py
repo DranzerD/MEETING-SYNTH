@@ -45,11 +45,23 @@ EMBEDDING_MODEL = os.getenv("AURA_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 # --- Retrieval ---
 DEFAULT_TOP_K = _int("AURA_TOP_K", 5)
 
-# Below this cosine similarity, the top match is treated as "not actually
-# relevant" and the chat engine refuses to answer rather than grounding a
-# response in a weak match. Calibrated against python_backend/eval's
-# relevant-vs-irrelevant score distributions -- see EVALUATION.md.
+# Relevance gate. The chat engine refuses to answer rather than grounding a
+# response in a weak match. Two thresholds, because the two scores differ in
+# how well they separate answerable from unanswerable questions:
+#
+#  - MIN_RERANK_SCORE: used when the cross-encoder reranked the candidates
+#    (the default). Its scores separate the classes cleanly: on the eval set
+#    plus extra sample-meeting questions, unanswerable questions topped out
+#    at -8.1 while answerable ones were almost all above -1.9 (one vague
+#    outlier at -7.9). -5.0 sits in that gap.
+#  - MIN_RELEVANCE_SCORE: bi-encoder cosine, used only when reranking is
+#    off/unavailable. It separates poorly -- a specific question against a
+#    ~180-word chunk often scores 0.1-0.3 even when the chunk answers it --
+#    so it is the fallback, not the primary signal.
+#
+# Re-derive with rag_eval/run_retrieval_eval.py (reports false refusals).
 MIN_RELEVANCE_SCORE = _float("AURA_MIN_RELEVANCE_SCORE", 0.30)
+MIN_RERANK_SCORE = _float("AURA_MIN_RERANK_SCORE", -5.0)
 
 # --- Reranking ---
 RERANK_ENABLED = _bool("AURA_ENABLE_RERANKING", True)

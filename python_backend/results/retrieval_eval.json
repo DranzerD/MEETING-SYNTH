@@ -22,10 +22,17 @@
       }
     },
     "refusal_gate": {
+      "gate_score_used": "cross_encoder",
       "min_relevance_score_threshold": 0.3,
+      "min_rerank_score_threshold": -5.0,
+      "answerable_questions": 15,
+      "false_refusals": 0,
+      "false_refusal_rate": 0.0,
+      "answerable_gate_score_min": -1.8752,
+      "unanswerable_gate_score_max": -8.1264,
       "unanswerable_questions": 5,
-      "correctly_refused": 4,
-      "refusal_rate": 0.8,
+      "correctly_refused": 5,
+      "refusal_rate": 1.0,
       "answerable_top_score_mean": 0.4826,
       "answerable_top_score_min": 0.1901,
       "unanswerable_top_score_mean": 0.2267,
@@ -267,7 +274,14 @@
       }
     },
     "refusal_gate": {
+      "gate_score_used": "cosine",
       "min_relevance_score_threshold": 0.3,
+      "min_rerank_score_threshold": -5.0,
+      "answerable_questions": 15,
+      "false_refusals": 0,
+      "false_refusal_rate": 0.0,
+      "answerable_gate_score_min": 0.3222,
+      "unanswerable_gate_score_max": 0.3207,
       "unanswerable_questions": 5,
       "correctly_refused": 4,
       "refusal_rate": 0.8,
@@ -493,5 +507,5 @@
       }
     ]
   },
-  "benchmark_timestamp": "2026-09-21T08:53:20.847786Z"
+  "benchmark_timestamp": "2026-10-17T14:43:00.084355Z"
 }

@@ -259,7 +259,7 @@ export default function AnalyzePage() {
               to the TypeScript heuristics.
             </p>
             <Link
-              href="https://github.com/rupaoruganti/meeting-synth/blob/main/README.md#python-backend-highlights"
+              href="https://github.com/DranzerD/MEETING-SYNTH#setup"
               target="_blank"
               className="rounded-full border border-white/20 px-4 py-2 text-xs uppercase tracking-[0.3em] text-indigo-200"
             >

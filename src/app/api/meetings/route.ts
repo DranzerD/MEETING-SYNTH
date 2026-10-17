@@ -3,15 +3,8 @@ import fs from "fs";
 import path from "path";
 import { getSessionUser, unauthorized } from "@/app/lib/auth";
 import { isSafeMeetingId } from "@/app/lib/validation";
-
-const DATA_DIR = path.join(process.cwd(), "data", "meetings");
-
-// Ensure data directory exists
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
+import { badRequest, readJsonBody, validateTasks } from "@/app/lib/http";
+import { DATA_DIR, ensureDataDir, readAllMeetings } from "@/app/lib/meetingStore";
 
 export async function GET(request: Request) {
   const user = await getSessionUser(request);
@@ -20,17 +13,9 @@ export async function GET(request: Request) {
   try {
     ensureDataDir();
 
-    const files = fs.readdirSync(DATA_DIR);
-    const meetings = files
-      .filter((f) => f.endsWith(".json"))
-      .map((file) => {
-        const content = fs.readFileSync(path.join(DATA_DIR, file), "utf-8");
-        return JSON.parse(content);
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+    const meetings = readAllMeetings().sort(
+      (a, b) => new Date(String(b.timestamp)).getTime() - new Date(String(a.timestamp)).getTime()
+    );
 
     return NextResponse.json({ success: true, meetings });
   } catch (error) {
@@ -49,18 +34,31 @@ export async function POST(request: Request) {
   try {
     ensureDataDir();
 
-    const body = await request.json();
-    const { meetingData } = body;
+    const body = (await readJsonBody(request)) as { meetingData?: Record<string, unknown> } | undefined;
+    if (body === undefined) return badRequest("Request body must be valid JSON.");
+    const meetingData = body?.meetingData;
 
-    if (!meetingData || !meetingData.meeting_id || !isSafeMeetingId(meetingData.meeting_id)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid meeting data" },
-        { status: 400 }
-      );
+    if (
+      !meetingData ||
+      typeof meetingData.meeting_id !== "string" ||
+      !isSafeMeetingId(meetingData.meeting_id)
+    ) {
+      return badRequest("Invalid meeting data");
+    }
+    if (meetingData.tasks !== undefined) {
+      const problem = validateTasks(meetingData.tasks);
+      if (problem) return badRequest(problem);
     }
 
-    const filename = `${meetingData.meeting_id}.json`;
-    const filepath = path.join(DATA_DIR, filename);
+    const filepath = path.join(DATA_DIR, `${meetingData.meeting_id}.json`);
+
+    // Saving must not silently replace an existing meeting (it used to).
+    if (fs.existsSync(filepath)) {
+      return NextResponse.json(
+        { success: false, error: "A meeting with that id already exists." },
+        { status: 409 }
+      );
+    }
 
     fs.writeFileSync(filepath, JSON.stringify(meetingData, null, 2));
 

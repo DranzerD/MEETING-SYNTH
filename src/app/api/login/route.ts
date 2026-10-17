@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/app/lib/mongodb";
 import User from "@/app/models/user";
-import { verifyPassword } from "@/app/lib/password";
+import { spendPasswordCheckTime, verifyPassword } from "@/app/lib/password";
+import { badRequest, readJsonBody } from "@/app/lib/http";
 import { createSessionToken, setSessionCookie } from "@/app/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await readJsonBody(req) as Record<string, unknown> | undefined | null;
+    if (body === undefined || body === null || typeof body !== "object") {
+      return badRequest("Request body must be a JSON object.");
+    }
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body?.password === "string" ? body.password : "";
 
@@ -25,7 +29,10 @@ export async function POST(req: Request) {
     const invalid = () =>
       NextResponse.json({ success: false, error: "Invalid email or password." }, { status: 401 });
 
-    if (!user) return invalid();
+    if (!user) {
+      await spendPasswordCheckTime(password);
+      return invalid();
+    }
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) return invalid();
 
