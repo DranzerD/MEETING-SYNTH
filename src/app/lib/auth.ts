@@ -108,7 +108,16 @@ function parseCookieHeader(header: string | null): Record<string, string> {
     if (idx === -1) continue;
     const key = part.slice(0, idx).trim();
     const value = part.slice(idx + 1).trim();
-    if (key) out[key] = decodeURIComponent(value);
+    if (!key) continue;
+    // Cookies on `localhost` are shared across ports, so an unrelated app
+    // can set one with a malformed %-escape. decodeURIComponent throws on
+    // that, which used to turn every request through the middleware into a
+    // 500. Use the raw value instead; it just won't verify as a session.
+    try {
+      out[key] = decodeURIComponent(value);
+    } catch {
+      out[key] = value;
+    }
   }
   return out;
 }
