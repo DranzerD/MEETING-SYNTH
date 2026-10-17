@@ -12,6 +12,8 @@ becomes queryable.
 from __future__ import annotations
 
 import json
+import os
+import threading
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -39,6 +41,7 @@ class IndexLedger:
   def __init__(self, storage_path: Path | None = None):
     self.storage_path = storage_path or DEFAULT_LEDGER_PATH
     self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+    self._lock = threading.Lock()
 
   def _read(self) -> Dict[str, Any]:
     if not self.storage_path.exists():
@@ -46,21 +49,31 @@ class IndexLedger:
     return json.loads(self.storage_path.read_text())
 
   def _write(self, data: Dict[str, Any]) -> None:
-    self.storage_path.write_text(json.dumps(data, indent=2))
+    # Write to a temp file and rename, so a concurrent reader never sees a
+    # half-written (invalid JSON) ledger.
+    tmp = self.storage_path.with_suffix(self.storage_path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2))
+    os.replace(tmp, self.storage_path)
 
   def set(self, status: IndexStatus) -> None:
-    data = self._read()
-    data[status.meeting_id] = asdict(status)
-    self._write(data)
+    # Background indexing runs in FastAPI's thread pool, so several meetings
+    # can update the ledger at once; the lock makes read-modify-write atomic
+    # (without it one meeting's update could overwrite another's).
+    with self._lock:
+      data = self._read()
+      data[status.meeting_id] = asdict(status)
+      self._write(data)
 
   def get(self, meeting_id: str) -> Dict[str, Any] | None:
-    return self._read().get(meeting_id)
+    with self._lock:
+      return self._read().get(meeting_id)
 
   def all_statuses(self) -> Dict[str, Any]:
     """Every meeting the ledger has ever recorded a status for. Used by the
     dashboard to show a "searchable in chat?" badge per meeting without a
     round trip per meeting."""
-    return self._read()
+    with self._lock:
+      return self._read()
 
   def mark_queued(self, meeting_id: str) -> None:
     self.set(IndexStatus(meeting_id=meeting_id, status="queued"))
