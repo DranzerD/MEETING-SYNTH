@@ -93,7 +93,7 @@ flowchart TB
         EM2 --> SR["ChunkVectorStore.query()<br/>ANN search, optional meeting_ids filter,<br/>over-fetches 20 candidates if reranking"]
         SR --> RR["reranking.rerank_scores()<br/>cross-encoder reorders the pool<br/>(falls back to ANN order if unavailable)"]
         RR --> TK["top_k slice"]
-        TK --> GATE{"top score >=<br/>MIN_RELEVANCE_SCORE (0.30)?"}
+        TK --> GATE{"cross-encoder score >=<br/>MIN_RERANK_SCORE (-5.0)?<br/>(cosine >= 0.30 if not reranked)"}
         GATE -- "no" --> REFUSE["Refuse to answer --<br/>LLM is never called"]
         GATE -- "yes" --> PROMPT["Prompt: numbered excerpts<br/>+ citation-enforcement instructions<br/>+ 'this is data, not instructions'"]
         PROMPT --> LLMC["LLMFallback.chat_complete()<br/>Groq -> OpenAI -> Anthropic"]
@@ -130,11 +130,14 @@ gain at this corpus size, which is the honest tradeoff to cite, not "reranking o
 
 **Relevance gate / hallucination control.** Two concrete mechanisms, not just a prompt asking
 nicely:
-1. If the top retrieved chunk's cosine similarity is below `AURA_MIN_RELEVANCE_SCORE` (default
-   0.30), `/query` returns "I don't have enough evidence..." **without calling the LLM at all**.
-   The threshold was picked by running `rag_eval/run_retrieval_eval.py` and looking at where
-   relevant-question and irrelevant-question top scores actually separate (see
-   [Measured results](#measured-results) for the real distributions, not an assumed number).
+1. If the top retrieved chunk fails the gate, `/query` returns "I don't have enough
+   evidence..." **without calling the LLM at all**. When reranking ran (the default) the gate
+   compares the cross-encoder score to `AURA_MIN_RERANK_SCORE` (default -5.0); otherwise it
+   compares cosine similarity to `AURA_MIN_RELEVANCE_SCORE` (0.30). The gate originally used
+   cosine only, which wrongly refused plainly answerable questions: a specific question against a
+   ~180-word chunk often has cosine 0.1-0.3 even when the chunk answers it (6 of 12 questions on
+   the sample meetings). The cross-encoder score separates the classes far better -- see
+   [Measured results](#measured-results), which now reports false refusals as well as correct ones.
 2. Citation enforcement: the response includes a `grounded` boolean that's `false` whenever the
    model's answer contains no `[n]` citation marker, even if relevant chunks were retrieved and
    passed to it. This doesn't verify individual claims against their source (that would need a
@@ -210,20 +213,33 @@ train-set-fit numbers are a sanity check, not an accuracy claim):
 The decision classifier's much lower score is real, not a bug: a small, 4-way dataset with
 genuine semantic overlap between classes ("we're migrating to Kubernetes" reads as both
 "technical" and general strategy) is a harder generalization problem than the task classifier's
-binary split. This is exactly the gap the hybrid LLM-fallback path exists to cover for
-low-confidence predictions.
+binary split.
+
+**Decision extraction does not use this classifier for detection.** It is trained only on decision
+sentences (it has no "not a decision" class), so its confidence says nothing about whether a
+sentence *is* a decision; thresholding it returned zero decisions on every transcript in this repo.
+Detection is rule-based (`aura_core/decisions.py`: "decided/agreed/concluded/approved/...", minus
+questions and bare acknowledgements like "Agreed, I'll add that today."); the classifier only
+assigns the *type*, which is where the 35.7% figure applies. On a hand review of the 35 sentences
+flagged across this repo's 13 sample transcripts, 3 were borderline false positives (e.g. "We
+agreed that's too slow."). That review is a spot check, not a measured precision/recall figure.
 
 **Retrieval quality** (`results/retrieval_eval.json`, 8-meeting/12-chunk hand-labeled corpus,
 15 answerable + 5 deliberately-unanswerable questions, `rag_eval/dataset.py`):
 
 | | k=3 Recall / Precision / MRR | k=5 Recall / Precision / MRR | Refusal rate (5 unanswerable Qs) |
 | --- | --- | --- | --- |
-| With reranking | 1.00 / 0.489 / 0.967 | 1.00 / 0.333 / 0.967 | 4/5 (80%) |
-| Without reranking | 1.00 / 0.444 / 0.922 | 1.00 / 0.320 / 0.922 | 4/5 (80%) |
+| With reranking | 1.00 / 0.489 / 0.967 | 1.00 / 0.333 / 0.967 | 5/5 (100%), 0/15 answerable wrongly refused |
+| Without reranking | 1.00 / 0.444 / 0.922 | 1.00 / 0.320 / 0.922 | 4/5 (80%), 0/15 wrongly refused |
 
-Score separation behind the 0.30 relevance-gate threshold: with reranking, answerable questions'
-top score averaged 0.483 (min 0.190) vs. unanswerable questions' 0.227 (max 0.302); without
-reranking, 0.502 (min 0.322) vs. 0.253 (max 0.321). Precision@K is mechanically low here because
+Score separation behind the gate: with reranking the gate score is the cross-encoder score --
+answerable questions scored >= -1.88 and unanswerable ones <= -8.13, so the -5.0 threshold sits in a
+wide gap. (The old cosine gate saw 0.190 vs 0.302 -- overlapping -- which is why it falsely refused
+q02.) Without reranking the gate falls back to cosine: 0.322 (min, answerable) vs 0.321 (max,
+unanswerable), still essentially touching. A wider check with 17 extra answerable and 10 extra
+off-topic questions on the sample meetings kept the same picture (answerable all >= -1.9 except one
+vague outlier at -7.9; off-topic all <= -8.1), but those extra questions were written by the author
+of the gate, not an independent set. Precision@K is mechanically low here because
 k=5 exceeds the number of truly relevant chunks in a 12-chunk corpus (1-2 per question) -- Recall
 and MRR are the more meaningful signal at this scale; precision becomes more informative as
 corpus size grows relative to k. Recall@1.0 at this corpus size is a real (not-guaranteed) pass,
@@ -244,7 +260,7 @@ Reranking is the dominant cost by far -- embedding and ANN search together are ~
 of reranking. This is the real, measured tradeoff behind `AURA_ENABLE_RERANKING` being a config
 flag rather than an assumed-good default.
 
-**Test suite:** 72 pytest tests (backend) + 56 Vitest tests (frontend) = 128 automated tests,
+**Test suite:** 106 pytest tests (backend) + 79 Vitest tests (frontend) = 185 automated tests,
 all passing as of this commit (`pytest tests/ -v`, `npm test`).
 
 **Not measured:** generation latency / end-to-end `/query` latency with a real LLM call (no
@@ -347,6 +363,12 @@ real test suite instead of eyeballing the code:
 - **A capitalized-word regex used for name detection had no way to exclude sentence-initial
   pronouns/articles** -- "We should ship Friday" extracted "We" as a candidate task assignee.
   Existed identically in both the Python and TypeScript implementations.
+- **The relevance gate refused answerable questions, and decision extraction returned nothing.**
+  Found by running the app on its own sample transcripts rather than from unit tests (which used a
+  fake embedder and so could not see either). The cosine gate was calibrated only on the
+  *refusal* side (unanswerable questions) and never measured false refusals; the decision
+  extractor thresholded a classifier with no negative class. Fixes: gate on cross-encoder score,
+  rule-based decision detection, and `false_refusals` added to the eval report.
 - **`next build` failed entirely without a live `MONGODB_URI`** because `mongodb.ts` threw at
   module import time, which Next's build-time page-data collection triggers just by importing a
   route that references it -- even for a build that doesn't need Mongo yet.
